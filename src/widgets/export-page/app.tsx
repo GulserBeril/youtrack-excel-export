@@ -22,7 +22,7 @@ import type {MessageKey} from '../../lib/i18n';
 import {downloadIcon, eyeIcon, filterIcon, newWindowIcon, tableIcon} from '../../lib/icons';
 import {buildQuery} from '../../lib/query';
 import {EMPTY_FILTERS} from '../../lib/types';
-import type {FieldMeta, Filters, Project, RawIssue, SavedQuery} from '../../lib/types';
+import type {FieldFilter, FieldMeta, Filters, Project, RawIssue, SavedQuery} from '../../lib/types';
 import {createYouTrackApi} from '../../lib/youtrack';
 
 // Register the widget in YouTrack. See https://www.jetbrains.com/help/youtrack/devportal-apps/apps-host-api.html
@@ -30,8 +30,6 @@ const host = await YTApp.register();
 const api = createYouTrackApi(host);
 const t = createTranslator(YTApp.locale);
 
-/** When no project is selected, field metadata is loaded from at most this many projects. */
-const MAX_PROJECTS_FOR_FIELDS = 30;
 const LARGE_EXPORT_WARNING = 5000;
 const PREVIEW_ROWS = 5;
 const SECTION_IDS = ['section-issues', 'section-columns', 'section-preview', 'section-export'];
@@ -62,10 +60,34 @@ const FORMAT_TEXT: Record<ExportFormat, {label: MessageKey; hint: MessageKey; do
   csv: {label: 'export.formatCsv', hint: 'export.hintCsv', download: 'export.downloadCsv'}
 };
 
-const defaultFieldFilters = (fields: FieldMeta[]) => PINNED_FIELDS
+const defaultFieldFilters = (fields: FieldMeta[]): FieldFilter[] => PINNED_FIELDS
   .map(name => fields.find(f => f.name === name))
   .filter((f): f is FieldMeta => Boolean(f))
   .map(f => ({field: f.name, kind: filterKindFor(f), values: []}));
+
+/**
+ * Fits the field filters to a (new) project's fields: filters on fields the project doesn't have
+ * are dropped, values the project doesn't have are removed, and the pinned filters
+ * (State, Assignee) are added when the project has those fields.
+ */
+function adaptFieldFilters(current: FieldFilter[], fields: FieldMeta[]): FieldFilter[] {
+  const kept = current.flatMap((ff): FieldFilter[] => {
+    const meta = fields.find(f => f.name === ff.field);
+    if (!meta || filterKindFor(meta) !== ff.kind) {
+      return [];
+    }
+    if (ff.kind === 'values') {
+      return [{...ff, values: ff.values.filter(v => meta.values.includes(v))}];
+    }
+    if (ff.kind === 'users' && meta.users) {
+      const logins = new Set(meta.users.map(u => u.login));
+      return [{...ff, values: ff.values.filter(v => v === 'me' || logins.has(v))}];
+    }
+    return [ff];
+  });
+  const missingPinned = defaultFieldFilters(fields).filter(d => !kept.some(k => k.field === d.field));
+  return [...missingPinned, ...kept];
+}
 
 type ExportState =
   | {phase: 'idle'}
@@ -134,16 +156,16 @@ const AppComponent: React.FunctionComponent = () => {
     ]).catch(e => setError(t('error.load', {error: errorText(e)})));
   }, []);
 
-  // Custom fields depend on which projects are selected ----------------------
+  // Fields (and with them the filters and columns) always belong to the selected project ----
+  const selectedProject = filters.projects[0];
   useEffect(() => {
-    if (!projects.length) {
+    const project = projects.find(p => p.shortName === selectedProject);
+    if (!project) {
+      setFields([]);
       return undefined;
     }
-    const scope = filters.projects.length
-      ? projects.filter(p => filters.projects.includes(p.shortName))
-      : projects.slice(0, MAX_PROJECTS_FOR_FIELDS);
     let cancelled = false;
-    api.getFieldsForProjects(scope).then(loaded => {
+    api.getFieldsForProject(project).then(loaded => {
       if (!cancelled) {
         setFields(loaded);
       }
@@ -151,20 +173,18 @@ const AppComponent: React.FunctionComponent = () => {
     return () => {
       cancelled = true;
     };
-  }, [projects, filters.projects]);
+  }, [projects, selectedProject]);
 
-  // First time fields arrive: add the pinned filter rows and default columns.
+  // When a project's fields arrive: keep only the filters and columns that exist in this project.
   useEffect(() => {
     if (!fields.length) {
       return;
     }
-    setFilters(prev => (prev.fieldFilters.length ? prev : {...prev, fieldFilters: defaultFieldFilters(fields)}));
+    setFilters(prev => ({...prev, fieldFilters: adaptFieldFilters(prev.fieldFilters, fields)}));
     setColumnKeys(prev => {
-      if (prev.length) {
-        return prev;
-      }
       const known = new Set(allColumns(fields, t).map(c => c.key));
-      return DEFAULT_COLUMN_KEYS.filter(k => known.has(k));
+      const kept = prev.filter(k => known.has(k));
+      return kept.length ? kept : DEFAULT_COLUMN_KEYS.filter(k => known.has(k));
     });
   }, [fields]);
 
@@ -175,13 +195,19 @@ const AppComponent: React.FunctionComponent = () => {
   );
   // Exports are always scoped to exactly one project. In query-editor mode the editor holds only the
   // other conditions, and the selected project is prepended, so the rule can't be bypassed by typing.
-  const selectedProject = filters.projects[0];
   const query = advanced
     ? [buildQuery({...EMPTY_FILTERS, projects: filters.projects}), customQuery.trim()].filter(Boolean).join(' ')
     : buildQuery(filters);
 
   // Debounced count + preview rows --------------------------------------------
   useEffect(() => {
+    // Nothing to count or preview until a project is chosen (those sections are hidden anyway).
+    if (!selectedProject) {
+      setCount(null);
+      setPreview(null);
+      setChecking(false);
+      return undefined;
+    }
     const signal = {cancelled: false};
     setChecking(true);
     const timer = setTimeout(async () => {
@@ -199,7 +225,7 @@ const AppComponent: React.FunctionComponent = () => {
       signal.cancelled = true;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, selectedProject]);
 
   const toggleAdvanced = useCallback(() => {
     // Switching to the query editor starts from the visual filters, without the project
@@ -310,8 +336,8 @@ const AppComponent: React.FunctionComponent = () => {
           id={SECTION_IDS[0]}
           icon={filterIcon}
           title={t('b.filtersTitle')}
-          headerExtra={!advanced && <QuickPresets fields={fields} filters={filters} onChange={setFilters}/>}
-          aside={(
+          headerExtra={selectedProject && !advanced && <QuickPresets fields={fields} filters={filters} onChange={setFilters}/>}
+          aside={selectedProject && (
             <Button inline iconRight={advanced ? undefined : newWindowIcon} onClick={toggleAdvanced}>
               {advanced ? t('filter.visual') : t('filter.advanced')}
             </Button>
@@ -338,21 +364,39 @@ const AppComponent: React.FunctionComponent = () => {
                 <Text info>{t('filter.queryHintProject')}</Text>
               </div>
             )
-            : (
-              <FilterPanel
-                api={api}
-                projects={projects}
-                fields={fields}
-                tags={tags}
-                savedQueries={savedQueries}
-                filters={filters}
-                onChange={setFilters}
-                onSavedQuery={loadSavedQuery}
-              />
-            )}
+            : selectedProject
+              ? (
+                <FilterPanel
+                  api={api}
+                  projects={projects}
+                  fields={fields}
+                  tags={tags}
+                  savedQueries={savedQueries}
+                  filters={filters}
+                  onChange={setFilters}
+                  onSavedQuery={loadSavedQuery}
+                />
+              )
+              : (
+                // Step 1: only the project. Its fields decide which filters, columns and values exist.
+                <div className="project-first">
+                  <div className="filter-grid">
+                    <ProjectSelect
+                      projects={projects}
+                      value={selectedProject}
+                      onChange={p => setFilters(prev => ({...prev, projects: p ? [p] : []}))}
+                    />
+                  </div>
+                  <Text info>{t('filter.chooseProjectFirst')}</Text>
+                </div>
+              )}
         </Card>
 
-        <div className="two-col">
+        {error && <Banner mode="error" withIcon>{error}</Banner>}
+
+        {/* Columns, preview and export appear once a project is chosen, top to bottom in the order of the flow. */}
+        {selectedProject && (
+          <>
           <Card
             id={SECTION_IDS[1]}
             icon={tableIcon}
@@ -369,9 +413,6 @@ const AppComponent: React.FunctionComponent = () => {
           >
             <PreviewTable issues={preview} columns={selectedColumns} stateKeys={stateKeys} loading={checking}/>
           </Card>
-        </div>
-
-        {error && <Banner mode="error" withIcon>{error}</Banner>}
 
         <Island id={SECTION_IDS[3]} className="card export-bar" role="region" aria-labelledby="export-title">
           {/* Row 1: title and what will be exported */}
@@ -429,6 +470,8 @@ const AppComponent: React.FunctionComponent = () => {
             <Button onClick={reset} disabled={busy}>{t('export.reset')}</Button>
           </div>
         </Island>
+          </>
+        )}
       </div>
     </I18nContext.Provider>
   );

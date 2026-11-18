@@ -98,17 +98,11 @@ body {
   margin-left: auto;
 }
 
-.two-col {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-  gap: calc(var(--ring-unit) * 2);
-  align-items: stretch;
-}
-
-@media (width < 1100px) {
-  .two-col {
-    grid-template-columns: 1fr;
-  }
+/* Step 1 before a project is chosen: just the project select and a short explanation. */
+.project-first {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ring-unit);
 }
 
 /* --- Filters ------------------------------------------------------------------------ */

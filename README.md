@@ -17,6 +17,10 @@ Geliştirme kuralları (tema, Ring UI, manifest) için üst klasördeki `CLAUDE.
   Banner, Island, Heading, ProgressBar); renkler yalnızca `--ring-*` değişkenlerinden gelir, ikonlar `@jetbrains/icons`.
   Önizlemedeki State etiketleri ve renk noktaları YouTrack'in o alan değeri için verdiği renklerdir (issue verisinden).
 
+Sayfa adım adım açılır: önce yalnızca proje seçilir. Proje seçilince filtreler o projenin alanlarıyla
+(Assignee listesi o projede atanabilen kişilerle) gelir ve Kolonlar, Önizleme ve Dışa aktarım özeti kartları
+alt alta görünür. Proje değişince yeni projede olmayan alan filtreleri, değerler ve kolonlar otomatik çıkarılır.
+
 Sayfa dört bölümden oluşur:
 
 1. **Issue filtreleri**

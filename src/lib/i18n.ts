@@ -166,7 +166,8 @@ const en = {
   'export.exportCsv': 'Export to CSV',
   'filter.projectSelect': 'Select a project',
   'export.noProject': 'Select a project to export.',
-  'filter.queryHintProject': 'The query is always limited to the selected project; add the other conditions here.'
+  'filter.queryHintProject': 'The query is always limited to the selected project; add the other conditions here.',
+  'filter.chooseProjectFirst': 'Start by choosing a project. Its fields decide the filters and columns; the columns, preview and export steps appear next.'
 };
 
 export type MessageKey = keyof typeof en;
@@ -336,7 +337,8 @@ const tr: Record<MessageKey, string> = {
   'export.exportCsv': 'CSV\'ye aktar',
   'filter.projectSelect': 'Proje seçin',
   'export.noProject': 'Dışa aktarmak için bir proje seçin.',
-  'filter.queryHintProject': 'Sorgu her zaman seçili projeyle sınırlıdır; diğer koşulları buraya yazın.'
+  'filter.queryHintProject': 'Sorgu her zaman seçili projeyle sınırlıdır; diğer koşulları buraya yazın.',
+  'filter.chooseProjectFirst': 'Önce bir proje seçin. Filtreler ve kolonlar o projenin alanlarına göre gelir; ardından kolon, önizleme ve dışa aktarma adımları görünür.'
 };
 
 export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;

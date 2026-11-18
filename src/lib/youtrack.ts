@@ -23,8 +23,13 @@ const ISSUE_FIELDS = [
 const PAGE_SIZE = 100;
 
 interface ProjectCustomField {
+  id: string;
   field: {name: string; fieldType?: {valueType?: string; isMultiValue?: boolean}};
   bundle?: {values?: {name: string; archived?: boolean}[]};
+}
+
+interface UserBundleField {
+  bundle?: {aggregatedUsers?: UserRef[]};
 }
 
 export function createYouTrackApi(host: HostAPI) {
@@ -40,32 +45,37 @@ export function createYouTrackApi(host: HostAPI) {
       return projects.filter(p => !p.archived);
     },
 
-    /** Loads custom fields of the given projects and merges them by name. */
-    getFieldsForProjects: async (projects: Project[]): Promise<FieldMeta[]> => {
-      const byName = new Map<string, FieldMeta>();
-      const lists = await Promise.all(projects.map(p =>
-        get<ProjectCustomField[]>(`admin/projects/${p.id}/customFields`, {
-          fields: 'field(name,fieldType(valueType,isMultiValue)),bundle(values(name,archived))',
-          $top: -1
-        })
-      ));
-      for (const pcf of lists.flat()) {
-        const name = pcf.field.name;
-        const values = (pcf.bundle?.values ?? []).filter(v => !v.archived).map(v => v.name);
-        const existing = byName.get(name);
-        if (existing) {
-          existing.values = Array.from(new Set([...existing.values, ...values]));
-          existing.multiValue = existing.multiValue || Boolean(pcf.field.fieldType?.isMultiValue);
-        } else {
-          byName.set(name, {
-            name,
-            valueType: pcf.field.fieldType?.valueType ?? 'string',
-            multiValue: Boolean(pcf.field.fieldType?.isMultiValue),
-            values
-          });
+    /**
+     * Custom fields of one project. Filters and columns are always built for the selected
+     * project, because every project can have its own fields and values.
+     * For user fields (e.g. Assignee) the users who can be set in this project are loaded too.
+     */
+    getFieldsForProject: async (project: Project): Promise<FieldMeta[]> => {
+      const list = await get<ProjectCustomField[]>(`admin/projects/${project.id}/customFields`, {
+        fields: 'id,field(name,fieldType(valueType,isMultiValue)),bundle(values(name,archived))',
+        $top: -1
+      });
+      const fields = await Promise.all(list.map(async (pcf): Promise<FieldMeta> => {
+        const valueType = pcf.field.fieldType?.valueType ?? 'string';
+        const meta: FieldMeta = {
+          name: pcf.field.name,
+          valueType,
+          multiValue: Boolean(pcf.field.fieldType?.isMultiValue),
+          values: (pcf.bundle?.values ?? []).filter(v => !v.archived).map(v => v.name)
+        };
+        if (valueType === 'user') {
+          try {
+            const detail = await get<UserBundleField>(`admin/projects/${project.id}/customFields/${pcf.id}`, {
+              fields: 'bundle(aggregatedUsers(login,fullName))'
+            });
+            meta.users = detail.bundle?.aggregatedUsers;
+          } catch {
+            // Bundle not readable: the user filter falls back to a global user search.
+          }
         }
-      }
-      return Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name));
+        return meta;
+      }));
+      return fields.sort((a, b) => a.name.localeCompare(b.name));
     },
 
     searchUsers: (text: string): Promise<UserRef[]> =>

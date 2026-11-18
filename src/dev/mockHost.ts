@@ -53,7 +53,9 @@ const ISSUES = Array.from({length: 137}, (_, i) => {
       {name: 'Assignee', value: i % 5 === 0 ? null : USERS[i % USERS.length]},
       {name: 'Due Date', value: i % 3 === 0 ? created + 14 * DAY : null},
       {name: 'Story points', value: (i % 8) + 1},
-      {name: 'Spent time', value: {minutes: (i % 6) * 45, presentation: `${(i % 6) * 45}m`}}
+      {name: 'Spent time', value: {minutes: (i % 6) * 45, presentation: `${(i % 6) * 45}m`}},
+      {name: 'Platform', value: {name: ['iOS', 'Android'][i % 2]}},
+      {name: 'Component', value: {name: ['Auth', 'Billing', 'Search'][i % 3]}}
     ]
   };
 });
@@ -84,17 +86,39 @@ function matches(issue: (typeof ISSUES)[number], query: string): boolean {
   return true;
 }
 
-function fieldsFor() {
+/**
+ * Every project has its own fields (like in real YouTrack):
+ *   WEB: the full set · MOB: adds Platform, has no Type · API: adds Component, has no Priority.
+ * Each project also has its own assignable users.
+ */
+const PROJECT_FIELDS: Record<string, string[]> = {
+  '0-1': ['State', 'Priority', 'Type', 'Assignee', 'Due Date', 'Story points', 'Spent time'],
+  '0-2': ['State', 'Priority', 'Assignee', 'Platform', 'Story points'],
+  '0-3': ['State', 'Type', 'Assignee', 'Component', 'Due Date']
+};
+const PROJECT_USERS: Record<string, string[]> = {
+  '0-1': ['ayse', 'mehmet', 'zeynep', 'can'],
+  '0-2': ['ayse', 'zeynep'],
+  '0-3': ['mehmet', 'can']
+};
+
+function fieldsFor(projectId: string) {
   const bundle = (values: string[]) => ({values: values.map(name => ({name}))});
-  return [
+  const all = [
     {field: {name: 'State', fieldType: {valueType: 'state'}}, bundle: bundle(STATES)},
     {field: {name: 'Priority', fieldType: {valueType: 'enum'}}, bundle: bundle(PRIORITIES)},
     {field: {name: 'Type', fieldType: {valueType: 'enum'}}, bundle: bundle(TYPES)},
     {field: {name: 'Assignee', fieldType: {valueType: 'user'}}},
     {field: {name: 'Due Date', fieldType: {valueType: 'date'}}},
     {field: {name: 'Story points', fieldType: {valueType: 'integer'}}},
-    {field: {name: 'Spent time', fieldType: {valueType: 'period'}}}
+    {field: {name: 'Spent time', fieldType: {valueType: 'period'}}},
+    {field: {name: 'Platform', fieldType: {valueType: 'enum'}}, bundle: bundle(['iOS', 'Android'])},
+    {field: {name: 'Component', fieldType: {valueType: 'enum'}}, bundle: bundle(['Auth', 'Billing', 'Search'])}
   ];
+  const names = PROJECT_FIELDS[projectId] ?? PROJECT_FIELDS['0-1'];
+  return all
+    .filter(f => names.includes(f.field.name))
+    .map(f => ({...f, id: `${projectId}:${f.field.name}`}));
 }
 
 const delay = <T>(value: T, ms = 150) => new Promise<T>(resolve => setTimeout(() => resolve(value), ms));
@@ -109,8 +133,15 @@ async function fetchYouTrack(url: string, params: Params = {}): Promise<unknown>
   if (url === 'admin/projects') {
     return delay(PROJECTS);
   }
-  if (/^admin\/projects\/.+\/customFields$/.test(url)) {
-    return delay(fieldsFor());
+  const fieldList = /^admin\/projects\/([^/]+)\/customFields$/.exec(url);
+  if (fieldList) {
+    return delay(fieldsFor(fieldList[1]));
+  }
+  // One project field: the user bundle of a user field (assignable users of that project).
+  const fieldDetail = /^admin\/projects\/([^/]+)\/customFields\/(.+)$/.exec(url);
+  if (fieldDetail) {
+    const logins = PROJECT_USERS[fieldDetail[1]] ?? [];
+    return delay({bundle: {aggregatedUsers: USERS.filter(u => logins.includes(u.login))}});
   }
   if (url === 'users') {
     const text = String(q.query ?? '').toLowerCase();

@@ -38,15 +38,30 @@ interface Props {
   onChange: (filter: FieldFilter) => void;
 }
 
-/** Multi-select of users, searched on the server as the user types. */
-function UserSelect({filter, api, onChange}: Omit<Props, 'meta'>) {
+/**
+ * Multi-select of users. When the project's assignable users are known (meta.users), the list
+ * contains exactly those people and Ring's own filter searches them; otherwise users are searched
+ * on the server as the user types.
+ */
+function UserSelect({meta, filter, api, onChange}: Props) {
   const t = useT();
   const me = useMemo(() => toItem('me', t('filter.me')), [t]);
+  const projectUsers = meta?.users;
   const [items, setItems] = useState<Item[]>([me]);
   const [loading, setLoading] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
+  useEffect(() => {
+    if (projectUsers) {
+      projectUsers.forEach(u => userLabels.set(u.login, u.fullName || u.login));
+      setItems([me, ...projectUsers.map(u => toItem(u.login, u.fullName || u.login))]);
+    }
+  }, [projectUsers, me]);
+
   const search = useCallback((text: string) => {
+    if (projectUsers) {
+      return; // the project's users are already loaded; Select filters them locally
+    }
     clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       setLoading(true);
@@ -58,7 +73,7 @@ function UserSelect({filter, api, onChange}: Omit<Props, 'meta'>) {
         setLoading(false);
       }
     }, 250);
-  }, [api, me]);
+  }, [api, me, projectUsers]);
 
   useEffect(() => {
     search('');
@@ -101,7 +116,7 @@ export function FieldFilterControl({meta, filter, api, onChange}: Props) {
         />
       );
     case 'users':
-      return <UserSelect filter={filter} api={api} onChange={onChange}/>;
+      return <UserSelect meta={meta} filter={filter} api={api} onChange={onChange}/>;
     case 'range':
       if (meta && DATE_TYPES.has(meta.valueType)) {
         return (

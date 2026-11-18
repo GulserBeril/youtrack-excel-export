@@ -20,6 +20,8 @@ export interface FieldMeta {
   multiValue: boolean;
   /** Bundle values (enum, state, version, ...). Empty for user/date/number/text fields. */
   values: string[];
+  /** For user fields: the users that can be set in the selected project (if readable). */
+  users?: UserRef[];
 }
 
 export type FilterKind = 'values' | 'users' | 'range' | 'text';
