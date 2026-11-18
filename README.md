@@ -18,8 +18,8 @@ Geliştirme kuralları (tema, Ring UI, manifest) için üst klasördeki `CLAUDE.
   Önizlemedeki State etiketleri ve renk noktaları YouTrack'in o alan değeri için verdiği renklerdir (issue verisinden).
 
 Sayfa adım adım açılır: önce yalnızca proje seçilir. Proje seçilince filtreler o projenin alanlarıyla
-(Assignee listesi o projede atanabilen kişilerle) gelir ve Kolonlar, Önizleme ve Dışa aktarım özeti kartları
-alt alta görünür. Proje değişince proje dışındaki tüm filtreler (durum, hızlı filtreler, alan filtreleri, tarihler,
+(Assignee listesi o projede atanabilen kişilerle) gelir. Kolonlar, Önizleme ve Dışa aktarım özeti kartları
+baştan alt alta görünür ama proje seçilene kadar pasiftir (soluk, `inert`: tıklanamaz, klavyeyle odaklanılamaz). Proje değişince proje dışındaki tüm filtreler (durum, hızlı filtreler, alan filtreleri, tarihler,
 etiketler, metin, sorgu kutusu) ve kolon seçimi sıfırlanır; kolonlar yeni projenin varsayılanlarına döner.
 
 Sayfa dört bölümden oluşur:

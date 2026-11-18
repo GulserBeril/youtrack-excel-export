@@ -167,7 +167,9 @@ const en = {
   'filter.projectSelect': 'Select a project',
   'export.noProject': 'Select a project to export.',
   'filter.queryHintProject': 'The query is always limited to the selected project; add the other conditions here.',
-  'filter.chooseProjectFirst': 'Start by choosing a project. Its fields decide the filters and columns; the columns, preview and export steps appear next.'
+  'filter.chooseProjectFirst': 'Start by choosing a project. Its fields decide the filters and columns; the columns, preview and export steps become active next.',
+  'step.lockedColumns': 'Select a project to choose the columns.',
+  'step.lockedPreview': 'Select a project to see a preview.'
 };
 
 export type MessageKey = keyof typeof en;
@@ -338,7 +340,9 @@ const tr: Record<MessageKey, string> = {
   'filter.projectSelect': 'Proje seçin',
   'export.noProject': 'Dışa aktarmak için bir proje seçin.',
   'filter.queryHintProject': 'Sorgu her zaman seçili projeyle sınırlıdır; diğer koşulları buraya yazın.',
-  'filter.chooseProjectFirst': 'Önce bir proje seçin. Filtreler ve kolonlar o projenin alanlarına göre gelir; ardından kolon, önizleme ve dışa aktarma adımları görünür.'
+  'filter.chooseProjectFirst': 'Önce bir proje seçin. Filtreler ve kolonlar o projenin alanlarına göre gelir; ardından kolon, önizleme ve dışa aktarma adımları aktif olur.',
+  'step.lockedColumns': 'Kolonları seçmek için bir proje seçin.',
+  'step.lockedPreview': 'Önizlemeyi görmek için bir proje seçin.'
 };
 
 export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;

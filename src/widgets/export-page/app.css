@@ -488,3 +488,9 @@ body {
 .advanced-project {
   max-width: 320px;
 }
+
+/* Inactive step (no project yet): dimmed; `inert` already blocks mouse, keyboard and screen readers. */
+.card--disabled {
+  opacity: 0.55;
+  user-select: none;
+}

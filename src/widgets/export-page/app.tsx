@@ -103,18 +103,34 @@ interface CardProps {
   headerExtra?: React.ReactNode;
   /** Content pushed to the right end of the title row. */
   aside?: React.ReactNode;
+  /** Inactive step: shown dimmed, not clickable or focusable, with `children` explaining why. */
+  disabled?: boolean;
   children: React.ReactNode;
 }
 
+/**
+ * Props for an inactive step. `inert` takes the section out of mouse, keyboard and screen-reader
+ * interaction (React 18 has no typed prop for it, so it is passed as a plain attribute).
+ */
+export function inactiveProps(disabled: boolean | undefined): Record<string, string> {
+  return disabled ? {'inert': '', 'aria-disabled': 'true'} : {};
+}
+
 /** A section on a Ring UI Island (the panel YouTrack itself uses): icon + title row, then content. */
-function Card({id, icon, title, headerExtra, aside, children}: CardProps) {
+function Card({id, icon, title, headerExtra, aside, disabled, children}: CardProps) {
   return (
-    <Island id={id} className="card" aria-labelledby={`${id}-title`} role="region">
+    <Island
+      id={id}
+      className={disabled ? 'card card--disabled' : 'card'}
+      aria-labelledby={`${id}-title`}
+      role="region"
+      {...inactiveProps(disabled)}
+    >
       <div className="card-header">
         <Icon glyph={icon} className="card-icon"/>
         <H2 id={`${id}-title`}>{title}</H2>
         {headerExtra}
-        {aside && <div className="card-aside">{aside}</div>}
+        {aside && !disabled && <div className="card-aside">{aside}</div>}
       </div>
       {children}
     </Island>
@@ -299,7 +315,9 @@ const AppComponent: React.FunctionComponent = () => {
 
   // --- Export bar texts ---
   let issuesText: React.ReactNode;
-  if (checking) {
+  if (!selectedProject) {
+    issuesText = '—';
+  } else if (checking) {
     issuesText = <><LoaderInline/> {t('export.counting')}</>;
   } else if (count === null) {
     issuesText = <Text className="warning">{t('export.countUnknown')}</Text>;
@@ -410,27 +428,38 @@ const AppComponent: React.FunctionComponent = () => {
 
         {error && <Banner mode="error" withIcon>{error}</Banner>}
 
-        {/* Columns, preview and export appear once a project is chosen, top to bottom in the order of the flow. */}
-        {selectedProject && (
-          <>
+        {/* Columns, preview and export are always shown in the order of the flow, and stay inactive
+            (dimmed, not clickable) until a project is chosen. */}
           <Card
             id={SECTION_IDS[1]}
             icon={tableIcon}
             title={t('b.columnsTitle')}
             aside={<Text info>{t('columns.selectedShort', {count: selectedColumns.length})}</Text>}
+            disabled={!selectedProject}
           >
-            <ColumnPicker available={columns} selected={columnKeys} onChange={setColumnKeys}/>
+            {selectedProject
+              ? <ColumnPicker available={columns} selected={columnKeys} onChange={setColumnKeys}/>
+              : <Text info>{t('step.lockedColumns')}</Text>}
           </Card>
           <Card
             id={SECTION_IDS[2]}
             icon={eyeIcon}
             title={t('b.previewTitle')}
             aside={previewNote && <Text info>{previewNote}</Text>}
+            disabled={!selectedProject}
           >
-            <PreviewTable issues={preview} columns={selectedColumns} stateKeys={stateKeys} loading={checking}/>
+            {selectedProject
+              ? <PreviewTable issues={preview} columns={selectedColumns} stateKeys={stateKeys} loading={checking}/>
+              : <Text info>{t('step.lockedPreview')}</Text>}
           </Card>
 
-        <Island id={SECTION_IDS[3]} className="card export-bar" role="region" aria-labelledby="export-title">
+        <Island
+          id={SECTION_IDS[3]}
+          className={selectedProject ? 'card export-bar' : 'card export-bar card--disabled'}
+          role="region"
+          aria-labelledby="export-title"
+          {...inactiveProps(!selectedProject)}
+        >
           {/* Row 1: title and what will be exported */}
           <div className="export-heading">
             <H2 id="export-title">{t('export.summary')}</H2>
@@ -483,11 +512,9 @@ const AppComponent: React.FunctionComponent = () => {
             <Button primary inline={false} icon={downloadIcon} onClick={doExport} disabled={busy || Boolean(blocker) || checking} loader={busy}>
               {t(FORMAT_TEXT[format].download)}
             </Button>
-            <Button onClick={reset} disabled={busy}>{t('export.reset')}</Button>
+            <Button onClick={reset} disabled={busy || !selectedProject}>{t('export.reset')}</Button>
           </div>
         </Island>
-          </>
-        )}
       </div>
     </I18nContext.Provider>
   );
