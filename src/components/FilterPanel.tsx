@@ -162,6 +162,39 @@ function activeChips(filters: Filters, projects: Project[], t: Translate): Chip[
   return chips;
 }
 
+// --- Project (required, exactly one) -------------------------------------------
+
+interface ProjectSelectProps {
+  projects: Project[];
+  /** Short name of the selected project, if any. */
+  value: string | undefined;
+  onChange: (shortName: string | undefined) => void;
+}
+
+/**
+ * Exports are always scoped to exactly one project: a single-choice select
+ * (no multi-select), marked as required. Used in the filter grid and in query-editor mode.
+ */
+export function ProjectSelect({projects, value, onChange}: ProjectSelectProps) {
+  const t = useT();
+  const items = useMemo(() => projects.map(p => ({...toItem(p.shortName, p.name), description: p.shortName})), [projects]);
+  const label = `${t('filter.project')} *`;
+  return (
+    <Field label={label}>
+      <Select<{value: string}>
+        filter
+        clear
+        size={Size.FULL}
+        data={items}
+        selected={items.find(i => i.value === value) ?? null}
+        label={t('filter.projectSelect')}
+        aria-required
+        onChange={(item: Item | null) => onChange(item?.value)}
+      />
+    </Field>
+  );
+}
+
 // --- Quick filters (rendered next to the card title) ---------------------------
 
 export function QuickPresets({fields, filters, onChange}: Pick<Props, 'fields' | 'filters' | 'onChange'>) {
@@ -188,8 +221,6 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
   const t = useT();
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => onChange({...filters, [key]: value});
 
-  const projectItems = useMemo(() => projects.map(p => ({...toItem(p.shortName, p.name), description: p.shortName})), [projects]);
-  const projectLabel = (shortName: string) => projects.find(p => p.shortName === shortName)?.name ?? shortName;
   const tagItems = useMemo(() => tags.map(tag => toItem(tag)), [tags]);
   const savedItems = useMemo(() => savedQueries.map(q => ({key: q.id, label: q.name, description: q.query, value: q.id})), [savedQueries]);
   const chips = activeChips(filters, projects, t);
@@ -223,17 +254,7 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
   return (
     <div className="filters">
       <div className="filter-grid">
-        <Field label={t('filter.project')}>
-          <Select<{value: string}>
-            multiple
-            filter
-            size={Size.FULL}
-            data={projectItems}
-            selected={filters.projects.map(p => toItem(p, projectLabel(p)))}
-            label={t('filter.projectAll')}
-            onChange={sel => set('projects', sel.map(s => s.value))}
-          />
-        </Field>
+        <ProjectSelect projects={projects} value={filters.projects[0]} onChange={p => set('projects', p ? [p] : [])}/>
 
         <Field label={t('filter.status')}>
           <Segmented<ResolvedFilter>

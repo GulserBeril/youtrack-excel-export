@@ -163,7 +163,10 @@ const en = {
   'export.formatColon': 'File format:',
   'export.separatorColon': 'Separator:',
   'export.exportXlsx': 'Export to Excel',
-  'export.exportCsv': 'Export to CSV'
+  'export.exportCsv': 'Export to CSV',
+  'filter.projectSelect': 'Select a project',
+  'export.noProject': 'Select a project to export.',
+  'filter.queryHintProject': 'The query is always limited to the selected project; add the other conditions here.'
 };
 
 export type MessageKey = keyof typeof en;
@@ -330,7 +333,10 @@ const tr: Record<MessageKey, string> = {
   'export.formatColon': 'Dosya formatı:',
   'export.separatorColon': 'Ayraç:',
   'export.exportXlsx': 'Excel\'e aktar',
-  'export.exportCsv': 'CSV\'ye aktar'
+  'export.exportCsv': 'CSV\'ye aktar',
+  'filter.projectSelect': 'Proje seçin',
+  'export.noProject': 'Dışa aktarmak için bir proje seçin.',
+  'filter.queryHintProject': 'Sorgu her zaman seçili projeyle sınırlıdır; diğer koşulları buraya yazın.'
 };
 
 export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;

@@ -489,3 +489,8 @@ body {
     transition: none;
   }
 }
+
+/* Query-editor mode: the required project select keeps a normal field width. */
+.advanced-project {
+  max-width: 320px;
+}
