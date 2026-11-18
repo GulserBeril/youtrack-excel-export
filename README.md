@@ -6,25 +6,31 @@ YouTrack ana menüsünde **Issue Export** adlı ayrı bir sayfa olarak görünü
 > Manifest'teki teknik kimlik (`"name": "excel-export"`) bilerek değiştirilmedi: YouTrack yeni sürümleri bu kimlikle
 > tanıyıp mevcut kurulumun üzerine günceller. Değiştirilirse ayrı bir uygulama olarak kurulur.
 
-## Özellikler (v0.8)
+## Özellikler (v0.9, tasarım B)
 
 Arayüz, YouTrack kullanıcısının diline göre Türkçe veya İngilizce açılır.
 Geliştirme kuralları (tema, Ring UI, manifest) için üst klasördeki `CLAUDE.md` dosyasına bakın:
 
 - **Tema:** Sayfa YouTrack'te seçili temayı izler (işletim sistemi temasını değil). Tema kararını app vermez;
   YouTrack'in iframe'e sağladığı Ring UI değişkenleri kullanılır.
-- **Yerel görünüm:** Tüm kontroller Ring UI bileşenleridir (Button, ButtonGroup, Select, Input, Checkbox, Tag,
+- **Yerel görünüm:** Tüm kontroller Ring UI bileşenleridir (Button, ButtonGroup, Select, Input, Checkbox, Tag, Tabs,
   Banner, Island, Heading, ProgressBar); renkler yalnızca `--ring-*` değişkenlerinden gelir, ikonlar `@jetbrains/icons`.
+  Önizlemedeki State etiketleri ve renk noktaları YouTrack'in o alan değeri için verdiği renklerdir (issue verisinden).
 
-1. **Dışa aktarılacak issue'ları seçin**
-   - Hızlı filtreler: Açık olanlar, Bana atananlar, Bu ay oluşturulanlar, Son 7 günde güncellenenler
-   - Proje, Durum (Tümü / Açık / Çözülmüş), State, Assignee, Oluşturulma ve Güncellenme tarihleri
-   - Gelişmiş filtreler: etiketler, metin, kayıtlı arama, diğer custom field'lar ve "YouTrack sorgusu olarak düzenle"
+Sayfa dört bölümden oluşur:
+
+1. **Issue filtreleri**
+   - Başlık satırında hızlı filtreler (Açık olanlar, Bana atananlar, Bu ay oluşturulanlar, Son 7 günde güncellenenler)
+     ve sağda "YouTrack sorgusu olarak düzenle"
+   - Tek satırda: Proje, Durum (Tümü / Açık / Çözülmüş), State, Assignee, Oluşturulma, Güncellenme
+   - Gelişmiş filtreler: etiketler, metin, kayıtlı arama ve diğer custom field'lar
    - Aktif filtreler tek tek kaldırılabilen etiketler olarak listelenir
-2. **Kolonları seçin**: solda aranabilir alan listesi, sağda numaralı ve sürüklenebilir seçili kolonlar
-   (klavye: satıra odaklanıp Alt+↑/↓), "Sırayı sıfırla"
+2. **Kolonlar**: üstte arama; solda Standart / Özel / Tüm alanlar sekmeleriyle onay kutuları; sağda numaralı ve
+   sürüklenebilir seçili kolonlar (klavye: satıra odaklanıp Alt+↑/↓), "Sırayı sıfırla"
 3. **Önizleme**: seçili kolonlarla ilk 5 satır
-4. **Dışa aktarım özeti**: issue/kolon sayısı, dosya formatı seçimi ve indirme butonu
+4. **Alt çubuk**: issue ve kolon sayısı, dosya formatı menüsü (CSV'de ayraç menüsü), Sıfırla ve dışa aktar butonu
+
+Önceki tasarım (A) git'te `v0.8.5-design-a` etiketiyle saklıdır.
 
 ### Dosya formatları
 
