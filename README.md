@@ -19,7 +19,8 @@ Geliştirme kuralları (tema, Ring UI, manifest) için üst klasördeki `CLAUDE.
 
 Sayfa adım adım açılır: önce yalnızca proje seçilir. Proje seçilince filtreler o projenin alanlarıyla
 (Assignee listesi o projede atanabilen kişilerle) gelir ve Kolonlar, Önizleme ve Dışa aktarım özeti kartları
-alt alta görünür. Proje değişince yeni projede olmayan alan filtreleri, değerler ve kolonlar otomatik çıkarılır.
+alt alta görünür. Proje değişince proje dışındaki tüm filtreler (durum, hızlı filtreler, alan filtreleri, tarihler,
+etiketler, metin, sorgu kutusu) sıfırlanır; kolonlar korunur, yalnızca yeni projede olmayanlar çıkarılır.
 
 Sayfa dört bölümden oluşur:
 
