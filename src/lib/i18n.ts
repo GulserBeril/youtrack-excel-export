@@ -3,8 +3,8 @@ import {createContext, useContext} from 'react';
 /** UI texts. The language follows the YouTrack user's locale (Turkish or English). */
 const en = {
   'app.title': 'Issue Export',
-  'app.subtitle': 'Select issues, choose the data you need, preview the result, and download it as Excel or CSV.',
-  'app.heroTitle': 'Export YouTrack issues',
+  'app.subtitle': 'Select issues, choose the columns and preview the result before exporting to Excel or CSV.',
+  'app.heroTitle': 'Export issues',
   'app.format': 'Excel (.xlsx)',
   'app.help': 'How it works',
   'app.helpBody1': 'Narrow down the issues with quick filters or the fields below. Active filters are listed at the bottom of the card.',
@@ -83,7 +83,7 @@ const en = {
   'columns.moveDown': 'Move down',
   'columns.empty': 'No columns selected. Tick fields on the left.',
   'columns.builtIn': 'Standard fields',
-  'columns.custom': 'Project fields',
+  'columns.custom': 'Custom fields',
 
   'preview.loading': 'Loading preview...',
   'preview.empty': 'No issues match these filters.',
@@ -148,15 +148,30 @@ const en = {
   'export.downloadXlsx': 'Download Excel file',
   'export.downloadCsv': 'Download CSV file',
   'export.format': 'File format',
-  'export.delimiter': 'Separator'
+  'export.delimiter': 'Separator',
+  'b.filtersTitle': 'Issue filters',
+  'b.columnsTitle': 'Columns',
+  'b.previewTitle': 'Preview',
+  'filter.quickColon': 'Quick filters:',
+  'filter.activeColon': 'Active filters:',
+  'columns.selectedShort': 'Selected: {count}',
+  'columns.tabStandard': 'Standard fields',
+  'columns.tabCustom': 'Custom fields',
+  'columns.tabAll': 'All fields',
+  'export.columnsSelected': '{count} columns selected',
+  'export.columnsSelectedOne': '1 column selected',
+  'export.formatColon': 'File format:',
+  'export.separatorColon': 'Separator:',
+  'export.exportXlsx': 'Export to Excel',
+  'export.exportCsv': 'Export to CSV'
 };
 
 export type MessageKey = keyof typeof en;
 
 const tr: Record<MessageKey, string> = {
   'app.title': 'Issue Export',
-  'app.subtitle': 'Issue\'ları seçin, ihtiyacınız olan verileri belirleyin, sonucu önizleyin ve Excel ya da CSV olarak indirin.',
-  'app.heroTitle': 'YouTrack issue\'larını dışa aktar',
+  'app.subtitle': 'Issue\'ları seçin, kolonları belirleyin ve Excel ya da CSV\'ye aktarmadan önce sonucu önizleyin.',
+  'app.heroTitle': 'Issue\'ları dışa aktar',
   'app.format': 'Excel (.xlsx)',
   'app.help': 'Nasıl kullanılır?',
   'app.helpBody1': 'Hızlı filtrelerle veya alttaki alanlarla issue\'ları daraltın. Aktif filtreler kartın altında listelenir.',
@@ -235,7 +250,7 @@ const tr: Record<MessageKey, string> = {
   'columns.moveDown': 'Aşağı taşı',
   'columns.empty': 'Kolon seçilmedi. Soldaki alanları işaretleyin.',
   'columns.builtIn': 'Standart alanlar',
-  'columns.custom': 'Proje alanları',
+  'columns.custom': 'Özel alanlar',
 
   'preview.loading': 'Önizleme yükleniyor...',
   'preview.empty': 'Bu filtrelere uyan issue yok.',
@@ -300,7 +315,22 @@ const tr: Record<MessageKey, string> = {
   'export.downloadXlsx': 'Excel dosyasını indir',
   'export.downloadCsv': 'CSV dosyasını indir',
   'export.format': 'Dosya formatı',
-  'export.delimiter': 'Ayraç'
+  'export.delimiter': 'Ayraç',
+  'b.filtersTitle': 'Issue filtreleri',
+  'b.columnsTitle': 'Kolonlar',
+  'b.previewTitle': 'Önizleme',
+  'filter.quickColon': 'Hızlı filtreler:',
+  'filter.activeColon': 'Aktif filtreler:',
+  'columns.selectedShort': 'Seçili: {count}',
+  'columns.tabStandard': 'Standart alanlar',
+  'columns.tabCustom': 'Özel alanlar',
+  'columns.tabAll': 'Tüm alanlar',
+  'export.columnsSelected': '{count} kolon seçili',
+  'export.columnsSelectedOne': '1 kolon seçili',
+  'export.formatColon': 'Dosya formatı:',
+  'export.separatorColon': 'Ayraç:',
+  'export.exportXlsx': 'Excel\'e aktar',
+  'export.exportCsv': 'CSV\'ye aktar'
 };
 
 export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;

@@ -1,13 +1,16 @@
 import React from 'react';
 import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/loader-inline';
+import Tag from '@jetbrains/ring-ui-built/components/tag/tag';
 
-import {cellValue} from '../lib/columns';
+import {cellColor, cellValue} from '../lib/columns';
 import {useT} from '../lib/i18n';
 import type {ColumnDef, RawIssue} from '../lib/types';
 
 interface Props {
   issues: RawIssue[] | null;
   columns: ColumnDef[];
+  /** Column keys of state fields (shown as tags, like in YouTrack). */
+  stateKeys: Set<string>;
   loading: boolean;
 }
 
@@ -21,8 +24,39 @@ function display(value: string | number | Date | null, type: ColumnDef['type']):
   return String(value);
 }
 
-/** Shows the first rows exactly as they will appear in the Excel file. */
-export function PreviewTable({issues, columns, loading}: Props) {
+/**
+ * One cell. Colors only ever come from YouTrack's own field-value colors in the issue data
+ * (the same colors YouTrack shows for that value), never from a palette of ours.
+ */
+function Cell({issue, column, isState}: {issue: RawIssue; column: ColumnDef; isState: boolean}) {
+  const text = display(cellValue(issue, column), column.type);
+  if (text === '—') {
+    return <span className="muted">{text}</span>;
+  }
+  if (column.key === 'idReadable') {
+    return <span className="issue-id">{text}</span>;
+  }
+  const color = cellColor(issue, column);
+  if (isState) {
+    return (
+      <Tag readOnly backgroundColor={color?.background} textColor={color?.foreground}>
+        {text}
+      </Tag>
+    );
+  }
+  if (color) {
+    return (
+      <span className="cell-with-dot">
+        <span className="value-dot" style={{background: color.background}} aria-hidden/>
+        {text}
+      </span>
+    );
+  }
+  return <>{text}</>;
+}
+
+/** Shows the first rows exactly as they will appear in the exported file. */
+export function PreviewTable({issues, columns, stateKeys, loading}: Props) {
   const t = useT();
 
   if (!columns.length) {
@@ -45,14 +79,11 @@ export function PreviewTable({issues, columns, loading}: Props) {
           <tbody>
             {issues.map(issue => (
               <tr key={issue.idReadable}>
-                {columns.map(c => {
-                  const text = display(cellValue(issue, c), c.type);
-                  return (
-                    <td key={c.key} title={text} className={c.type === 'number' ? 'num' : undefined}>
-                      {text}
-                    </td>
-                  );
-                })}
+                {columns.map(c => (
+                  <td key={c.key} title={display(cellValue(issue, c), c.type)} className={c.type === 'number' ? 'num' : undefined}>
+                    <Cell issue={issue} column={c} isState={stateKeys.has(c.key)}/>
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>

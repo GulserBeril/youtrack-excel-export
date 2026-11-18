@@ -10,3 +10,6 @@ export {default as resetIcon} from '@jetbrains/icons/reset-12px';
 export {default as searchIcon} from '@jetbrains/icons/search-12px';
 export {default as tableIcon} from '@jetbrains/icons/table-20px';
 export {default as chevronDownIcon} from '@jetbrains/icons/chevron-down';
+export {default as filterSmallIcon} from '@jetbrains/icons/filter-12px';
+export {default as issueIcon} from '@jetbrains/icons/issue';
+export {default as fileIcon} from '@jetbrains/icons/file-20px';

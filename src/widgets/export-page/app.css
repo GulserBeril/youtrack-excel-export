@@ -2,6 +2,7 @@
  * Layout and spacing only. Controls are Ring UI components, and every color comes from a
  * Ring UI variable (--ring-*), which YouTrack sets for its current light or dark theme.
  * No hard-coded colors and no prefers-color-scheme: the page follows YouTrack's theme.
+ * (The only other colors on the page are YouTrack's own field-value colors, read from the issue data.)
  *
  * Ring UI's stylesheet goes into a cascade layer. Layered rules always lose to the unlayered
  * rules below, so our layout wins no matter where the bundler puts each stylesheet
@@ -28,6 +29,14 @@ body {
   gap: calc(var(--ring-unit) * 2);
   padding: calc(var(--ring-unit) * 3);
   box-sizing: border-box;
+}
+
+.muted {
+  color: var(--ring-secondary-color);
+}
+
+.muted-icon {
+  color: var(--ring-icon-secondary-color);
 }
 
 .success {
@@ -62,54 +71,36 @@ body {
   margin: 0;
 }
 
-/* --- Cards (Ring UI Island) ---------------------------------------------------------- */
+/* --- Cards (Ring UI Island): icon + title + extras on one row ---------------------------- */
 
 .card {
   min-width: 0;
-  padding: calc(var(--ring-unit) * 2) calc(var(--ring-unit) * 3);
+  padding: calc(var(--ring-unit) * 2) calc(var(--ring-unit) * 2.5);
 }
 
 .card-header {
   display: flex;
-  align-items: flex-start;
-  gap: calc(var(--ring-unit) * 1.5);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ring-unit) calc(var(--ring-unit) * 1.5);
   margin-bottom: calc(var(--ring-unit) * 2);
 }
 
-.card-icon {
-  margin-top: 2px;
-  color: var(--ring-icon-color);
-}
-
-.card-heading {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.card-heading h2 {
+.card-header h2 {
   margin: 0;
 }
 
-.tip {
-  flex: 0 1 320px;
+.card-icon {
+  color: var(--ring-main-color);
 }
 
-@media (width < 900px) {
-  .card-header {
-    flex-wrap: wrap;
-  }
-
-  .tip {
-    flex-basis: 100%;
-  }
+.card-aside {
+  margin-left: auto;
 }
 
 .two-col {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
   gap: calc(var(--ring-unit) * 2);
   align-items: stretch;
 }
@@ -122,41 +113,45 @@ body {
 
 /* --- Filters ------------------------------------------------------------------------ */
 
-.filters {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--ring-unit) * 2);
-}
-
 .quick-presets {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ring-unit);
+  margin-left: calc(var(--ring-unit) * 2);
 }
 
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) * 1.5);
+}
+
+/* All six main filters on one row on wide screens. */
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: calc(var(--ring-unit) * 2) calc(var(--ring-unit) * 3);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: calc(var(--ring-unit) * 1.5) calc(var(--ring-unit) * 2);
   align-items: end;
 }
 
-.field--row-start {
-  grid-column-start: 1;
+@media (width < 1400px) {
+  .filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
-@media (width < 1100px) {
+@media (width < 800px) {
   .filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .field--row-start {
-    grid-column-start: auto;
+  .quick-presets {
+    margin-left: 0;
   }
 }
 
-@media (width < 600px) {
+@media (width < 520px) {
   .filter-grid {
     grid-template-columns: 1fr;
   }
@@ -208,17 +203,12 @@ body {
   transform: rotate(180deg);
 }
 
-.edit-query-cell {
-  display: flex;
-  align-items: flex-end;
-}
-
 .active-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ring-unit);
-  padding-top: calc(var(--ring-unit) * 2);
+  padding-top: calc(var(--ring-unit) * 1.5);
   border-top: 1px solid var(--ring-line-color);
 }
 
@@ -228,18 +218,23 @@ body {
   gap: var(--ring-unit);
 }
 
-/* --- Columns (two panes) --------------------------------------------------------------- */
+/* --- Columns: search on top, field list (with tabs) left, selected columns right ----------------- */
 
 .column-picker {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  gap: calc(var(--ring-unit) * 2);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: calc(var(--ring-unit) * 1.5) calc(var(--ring-unit) * 2);
+}
+
+.column-search {
+  grid-column: 1 / -1;
 }
 
 .column-source {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--ring-unit) * 1.5);
+  gap: var(--ring-unit);
+  min-width: 0;
   padding-right: calc(var(--ring-unit) * 2);
   border-right: 1px solid var(--ring-line-color);
 }
@@ -260,7 +255,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: calc(var(--ring-unit) * 1.5);
-  max-height: 260px;
+  max-height: 240px;
   padding-right: var(--ring-unit);
   overflow-y: auto;
 }
@@ -304,7 +299,7 @@ body {
   display: flex;
   align-items: center;
   gap: var(--ring-unit);
-  min-height: 32px;
+  min-height: 30px;
   padding: 0 var(--ring-unit);
   border-top: 1px solid var(--ring-line-color);
   cursor: grab;
@@ -383,7 +378,7 @@ body {
 .preview-table th,
 .preview-table td {
   max-width: 240px;
-  height: 32px;
+  height: 36px;
   padding: 0 calc(var(--ring-unit) * 1.5);
   border-bottom: 1px solid var(--ring-line-color);
   overflow: hidden;
@@ -407,48 +402,67 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.preview-note {
-  display: block;
-  margin-top: var(--ring-unit);
+.issue-id {
+  color: var(--ring-link-color);
 }
 
-/* --- Export summary (a normal card right after the content, left-aligned) ------------------- */
+.cell-with-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ring-unit);
+}
+
+/* Background comes from YouTrack's color for the value (inline style), never from us. */
+.value-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* --- Export bar: facts on the left, actions on the right (a normal card, not pinned) ------------- */
 
 .export-bar {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: var(--ring-unit);
 }
 
-.export-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--ring-unit);
-}
-
-.export-heading h2 {
-  margin: 0;
-}
-
-.export-line {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-
-.export-controls {
+.export-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: calc(var(--ring-unit) * 1.5);
 }
 
-/* Single-character separator buttons (; and ,) get a comfortable click target. */
-.separator-group button {
-  min-width: 36px;
+.export-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: var(--ring-unit);
+}
+
+.export-fact {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ring-unit);
+  padding: 0 calc(var(--ring-unit) * 2);
+  border-left: 1px solid var(--ring-line-color);
+}
+
+.export-fact:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.export-fact--strong {
+  font-weight: var(--ring-font-weight-bold);
+}
+
+.export-actions {
+  display: flex;
+  gap: var(--ring-unit);
 }
 
 .export-note {
@@ -456,7 +470,6 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ring-unit);
-  min-height: 20px;
 }
 
 .progress {
@@ -466,6 +479,11 @@ body {
 @media (width < 640px) {
   .app {
     padding: calc(var(--ring-unit) * 2);
+  }
+
+  .export-fact {
+    padding-left: 0;
+    border-left: 0;
   }
 }
 

@@ -3,6 +3,7 @@ import Select from '@jetbrains/ring-ui-built/components/select/select';
 import type {SelectItem} from '@jetbrains/ring-ui-built/components/select/select';
 import Input, {Size} from '@jetbrains/ring-ui-built/components/input/input';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
+import Icon from '@jetbrains/ring-ui-built/components/icon/icon';
 import Tag from '@jetbrains/ring-ui-built/components/tag/tag';
 import Text from '@jetbrains/ring-ui-built/components/text/text';
 
@@ -10,7 +11,7 @@ import {detectPreset, formatRange, presetRange} from '../lib/dates';
 import type {DatePreset} from '../lib/dates';
 import {useT} from '../lib/i18n';
 import type {MessageKey, Translate} from '../lib/i18n';
-import {chevronDownIcon, closeIcon, newWindowIcon} from '../lib/icons';
+import {chevronDownIcon, closeIcon, filterSmallIcon} from '../lib/icons';
 import type {DateRange, FieldFilter, FieldMeta, Filters, Project, ResolvedFilter, SavedQuery} from '../lib/types';
 import type {YouTrackApi} from '../lib/youtrack';
 import {DateRangeFilter} from './DateRangeFilter';
@@ -32,8 +33,6 @@ interface Props {
   filters: Filters;
   onChange: (filters: Filters) => void;
   onSavedQuery: (query: SavedQuery) => void;
-  /** Switches the card to the raw YouTrack query editor. */
-  onEditQuery: () => void;
 }
 
 function Field({label, children, onRemove}: {label: string; children: React.ReactNode; onRemove?: () => void}) {
@@ -163,9 +162,29 @@ function activeChips(filters: Filters, projects: Project[], t: Translate): Chip[
   return chips;
 }
 
+// --- Quick filters (rendered next to the card title) ---------------------------
+
+export function QuickPresets({fields, filters, onChange}: Pick<Props, 'fields' | 'filters' | 'onChange'>) {
+  const t = useT();
+  const presets = useMemo(() => quickPresets(fields), [fields]);
+  return (
+    <div className="quick-presets" role="group" aria-labelledby="quick-filters-label">
+      <Text id="quick-filters-label" info>{t('filter.quickColon')}</Text>
+      {presets.map(p => {
+        const active = p.active(filters);
+        return (
+          <Button key={p.id} active={active} aria-pressed={active} onClick={() => onChange(p.toggle(filters, !active))}>
+            {t(p.id)}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
+
 // --- Panel ---------------------------------------------------------------------
 
-export function FilterPanel({api, projects, fields, tags, savedQueries, filters, onChange, onSavedQuery, onEditQuery}: Props) {
+export function FilterPanel({api, projects, fields, tags, savedQueries, filters, onChange, onSavedQuery}: Props) {
   const t = useT();
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => onChange({...filters, [key]: value});
 
@@ -173,7 +192,6 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
   const projectLabel = (shortName: string) => projects.find(p => p.shortName === shortName)?.name ?? shortName;
   const tagItems = useMemo(() => tags.map(tag => toItem(tag)), [tags]);
   const savedItems = useMemo(() => savedQueries.map(q => ({key: q.id, label: q.name, description: q.query, value: q.id})), [savedQueries]);
-  const presets = useMemo(() => quickPresets(fields), [fields]);
   const chips = activeChips(filters, projects, t);
 
   const fieldMeta = (name: string) => fields.find(f => f.name === name);
@@ -204,18 +222,6 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
 
   return (
     <div className="filters">
-      <div className="quick-presets" role="group" aria-labelledby="quick-filters-label">
-        <Text id="quick-filters-label" bold>{t('filter.quick')}</Text>
-        {presets.map(p => {
-          const active = p.active(filters);
-          return (
-            <Button key={p.id} active={active} aria-pressed={active} onClick={() => onChange(p.toggle(filters, !active))}>
-              {t(p.id)}
-            </Button>
-          );
-        })}
-      </div>
-
       <div className="filter-grid">
         <Field label={t('filter.project')}>
           <Select<{value: string}>
@@ -244,10 +250,9 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
 
         {pinned.map(ff => renderFieldFilter(ff, false))}
 
-        <div className="field field--row-start">
-          <div className="field-label"><span>{t('filter.created')}</span></div>
+        <Field label={t('filter.created')}>
           <DateRangeFilter value={filters.created} onChange={r => set('created', r)}/>
-        </div>
+        </Field>
         <Field label={t('filter.updated')}>
           <DateRangeFilter value={filters.updated} onChange={r => set('updated', r)}/>
         </Field>
@@ -318,18 +323,16 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
               onChange={(item: Item | null) => item && addFieldFilter(item.value)}
             />
           </Field>
-          <div className="edit-query-cell">
-            <Button inline iconRight={newWindowIcon} onClick={onEditQuery}>{t('filter.advanced')}</Button>
-          </div>
         </div>
       )}
 
       <div className="active-filters" aria-live="polite">
+        <Icon glyph={filterSmallIcon} className="muted-icon"/>
         {chips.length === 0
           ? <Text info>{t('filter.none')}</Text>
           : (
             <>
-              <Text info>{t('filter.active')}{':'}</Text>
+              <Text info>{t('filter.activeColon')}</Text>
               {chips.map(c => (
                 <Tag key={c.id} onRemove={() => onChange(c.remove(filters))}>
                   {c.text}

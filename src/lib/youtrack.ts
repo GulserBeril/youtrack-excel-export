@@ -17,7 +17,7 @@ const ISSUE_FIELDS = [
   'project(shortName,name)',
   'reporter(login,fullName)',
   'tags(name)',
-  'customFields(name,$type,value(name,login,fullName,presentation,minutes,text))'
+  'customFields(name,$type,value(name,login,fullName,presentation,minutes,text,color(background,foreground)))'
 ].join(',');
 
 const PAGE_SIZE = 100;

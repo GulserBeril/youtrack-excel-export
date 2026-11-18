@@ -11,6 +11,14 @@ const PROJECTS = [
 ];
 const STATES = ['Open', 'In Progress', 'To Verify', 'Fixed', 'Done'];
 const PRIORITIES = ['Show-stopper', 'Critical', 'Major', 'Normal', 'Minor'];
+// Sample bundle colors, standing in for the colors YouTrack returns with field values (dev only).
+const STATE_COLORS: Record<string, {background: string; foreground: string}> = {
+  Open: {background: '#3d4247', foreground: '#dfe1e5'},
+  'In Progress': {background: '#25324d', foreground: '#8ab4f8'},
+  'To Verify': {background: '#3d3223', foreground: '#f2c55c'},
+  Fixed: {background: '#253627', foreground: '#5fb865'},
+  Done: {background: '#253627', foreground: '#5fb865'}
+};
 const PRIORITY_COLORS = ['#e30000', '#e85c00', '#e0a800', '#3d8bfd', '#8f9bb3'];
 const TYPES = ['Bug', 'Feature', 'Task'];
 const USERS = [
@@ -39,7 +47,7 @@ const ISSUES = Array.from({length: 137}, (_, i) => {
     reporter: USERS[(i + 1) % USERS.length],
     tags: i % 4 === 0 ? [{name: TAGS[i % 3]}] : [],
     customFields: [
-      {name: 'State', value: {name: state}},
+      {name: 'State', value: {name: state, color: STATE_COLORS[state]}},
       {name: 'Priority', value: {name: PRIORITIES[i % PRIORITIES.length], color: {background: PRIORITY_COLORS[i % PRIORITIES.length]}}},
       {name: 'Type', value: {name: TYPES[i % TYPES.length]}},
       {name: 'Assignee', value: i % 5 === 0 ? null : USERS[i % USERS.length]},

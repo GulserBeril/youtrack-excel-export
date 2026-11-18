@@ -3,12 +3,15 @@ import Button from '@jetbrains/ring-ui-built/components/button/button';
 import Checkbox from '@jetbrains/ring-ui-built/components/checkbox/checkbox';
 import Icon from '@jetbrains/ring-ui-built/components/icon/icon';
 import Input, {Size} from '@jetbrains/ring-ui-built/components/input/input';
+import {Tab, Tabs} from '@jetbrains/ring-ui-built/components/tabs/tabs';
 import Text from '@jetbrains/ring-ui-built/components/text/text';
 
 import {DEFAULT_COLUMN_KEYS} from '../lib/columns';
 import {useT} from '../lib/i18n';
 import {closeIcon, dragIcon, resetIcon, searchIcon} from '../lib/icons';
 import type {ColumnDef} from '../lib/types';
+
+type ColumnTab = 'standard' | 'custom' | 'all';
 
 interface Props {
   available: ColumnDef[];
@@ -23,6 +26,7 @@ interface Props {
 export function ColumnPicker({available, selected, onChange}: Props) {
   const t = useT();
   const [search, setSearch] = useState('');
+  const [tab, setTab] = useState<ColumnTab>('standard');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -58,15 +62,16 @@ export function ColumnPicker({available, selected, onChange}: Props) {
 
   const q = search.trim().toLocaleLowerCase();
   const groups = [
-    {title: t('columns.builtIn'), items: available.filter(c => !c.key.startsWith('cf:'))},
-    {title: t('columns.custom'), items: available.filter(c => c.key.startsWith('cf:'))}
+    {id: 'standard', title: t('columns.builtIn'), items: available.filter(c => !c.key.startsWith('cf:'))},
+    {id: 'custom', title: t('columns.custom'), items: available.filter(c => c.key.startsWith('cf:'))}
   ]
+    .filter(g => tab === 'all' || g.id === tab)
     .map(g => ({...g, items: g.items.filter(c => !q || c.label.toLocaleLowerCase().includes(q))}))
     .filter(g => g.items.length);
 
   return (
     <div className="column-picker">
-      <div className="column-source">
+      <div className="column-search">
         <Input
           size={Size.FULL}
           icon={searchIcon}
@@ -76,11 +81,18 @@ export function ColumnPicker({available, selected, onChange}: Props) {
           onClear={() => setSearch('')}
           aria-label={t('columns.search')}
         />
+      </div>
+      <div className="column-source">
+        <Tabs selected={tab} onSelect={key => setTab(key as ColumnTab)} className="column-tabs">
+          <Tab id="standard" title={t('columns.tabStandard')}/>
+          <Tab id="custom" title={t('columns.tabCustom')}/>
+          <Tab id="all" title={t('columns.tabAll')}/>
+        </Tabs>
         <div className="column-checklist">
           {groups.length === 0 && <Text info>{t('columns.noMatch')}</Text>}
           {groups.map(g => (
             <div key={g.title} className="column-group">
-              <Text info size={Text.Size.S} className="group-title">{g.title}</Text>
+              {tab === 'all' && <Text info size={Text.Size.S} className="group-title">{g.title}</Text>}
               {g.items.map(c => (
                 <Checkbox
                   key={c.key}

@@ -96,3 +96,19 @@ export function cellValue(issue: RawIssue, column: ColumnDef): string | number |
   }
 }
 
+
+/** YouTrack's own colors for a single enum/state value (from the issue data, not our palette). */
+export interface ValueColor {
+  background: string;
+  foreground?: string;
+}
+
+export function cellColor(issue: RawIssue, column: ColumnDef): ValueColor | null {
+  if (!column.key.startsWith('cf:')) {
+    return null;
+  }
+  const cf = issue.customFields?.find(f => f.name === column.key.slice(3));
+  const value = cf?.value as {color?: {background?: string; foreground?: string}} | null | undefined;
+  const color = value && !Array.isArray(value) ? value.color : undefined;
+  return color?.background ? {background: color.background, foreground: color.foreground} : null;
+}
