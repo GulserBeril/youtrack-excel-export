@@ -1,25 +1,26 @@
 import React, {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import Banner from '@jetbrains/ring-ui-built/components/banner/banner';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
-import {H1, H2} from '@jetbrains/ring-ui-built/components/heading/heading';
+import {H1, H3} from '@jetbrains/ring-ui-built/components/heading/heading';
 import Icon from '@jetbrains/ring-ui-built/components/icon/icon';
 import Input, {Size} from '@jetbrains/ring-ui-built/components/input/input';
 import Island from '@jetbrains/ring-ui-built/components/island/island';
 import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/loader-inline';
+import Select from '@jetbrains/ring-ui-built/components/select/select';
+import type {SelectItem} from '@jetbrains/ring-ui-built/components/select/select';
 import ProgressBar from '@jetbrains/ring-ui-built/components/progress-bar/progress-bar';
 import Text from '@jetbrains/ring-ui-built/components/text/text';
 
-import {ColumnPicker} from '../../components/ColumnPicker';
+import {ColumnList} from '../../components/ColumnList';
 import {filterKindFor} from '../../components/FieldFilterControl';
 import {FilterPanel, PINNED_FIELDS, ProjectSelect, QuickPresets} from '../../components/FilterPanel';
 import {PreviewTable} from '../../components/PreviewTable';
-import {Segmented} from '../../components/Segmented';
 import {allColumns, DEFAULT_COLUMN_KEYS} from '../../lib/columns';
 import {defaultCsvDelimiter, EXPORT_FORMATS, exportIssues} from '../../lib/exporters';
 import type {CsvDelimiter, ExportFormat} from '../../lib/exporters';
 import {createTranslator, I18nContext} from '../../lib/i18n';
 import type {MessageKey} from '../../lib/i18n';
-import {downloadIcon, eyeIcon, filterIcon, newWindowIcon, tableIcon} from '../../lib/icons';
+import {downloadIcon, newWindowIcon} from '../../lib/icons';
 import {buildQuery} from '../../lib/query';
 import {EMPTY_FILTERS} from '../../lib/types';
 import type {FieldFilter, FieldMeta, Filters, Project, RawIssue, SavedQuery} from '../../lib/types';
@@ -95,46 +96,12 @@ type ExportState =
   | {phase: 'building'}
   | {phase: 'done'; fileName: string};
 
-interface CardProps {
-  id: string;
-  icon: string;
-  title: string;
-  /** Extra content on the title row (quick filters, counters, links). */
-  headerExtra?: React.ReactNode;
-  /** Content pushed to the right end of the title row. */
-  aside?: React.ReactNode;
-  /** Inactive step: shown dimmed, not clickable or focusable, with `children` explaining why. */
-  disabled?: boolean;
-  children: React.ReactNode;
-}
-
 /**
  * Props for an inactive step. `inert` takes the section out of mouse, keyboard and screen-reader
  * interaction (React 18 has no typed prop for it, so it is passed as a plain attribute).
  */
 export function inactiveProps(disabled: boolean | undefined): Record<string, string> {
   return disabled ? {'inert': '', 'aria-disabled': 'true'} : {};
-}
-
-/** A section on a Ring UI Island (the panel YouTrack itself uses): icon + title row, then content. */
-function Card({id, icon, title, headerExtra, aside, disabled, children}: CardProps) {
-  return (
-    <Island
-      id={id}
-      className={disabled ? 'card card--disabled' : 'card'}
-      aria-labelledby={`${id}-title`}
-      role="region"
-      {...inactiveProps(disabled)}
-    >
-      <div className="card-header">
-        <Icon glyph={icon} className="card-icon"/>
-        <H2 id={`${id}-title`}>{title}</H2>
-        {headerExtra}
-        {aside && !disabled && <div className="card-aside">{aside}</div>}
-      </div>
-      {children}
-    </Island>
-  );
 }
 
 const AppComponent: React.FunctionComponent = () => {
@@ -302,16 +269,6 @@ const AppComponent: React.FunctionComponent = () => {
 
   useEffect(() => () => clearTimeout(doneTimer.current), []);
 
-  const reset = useCallback(() => {
-    setFilters({...EMPTY_FILTERS, fieldFilters: defaultFieldFilters(fields)});
-    setCustomQuery('');
-    setAdvanced(false);
-    const known = new Set(columns.map(c => c.key));
-    setColumnKeys(DEFAULT_COLUMN_KEYS.filter(k => known.has(k)));
-    setError(null);
-    clearTimeout(doneTimer.current);
-    setExportState({phase: 'idle'});
-  }, [fields, columns]);
 
   // --- Export bar texts ---
   let issuesText: React.ReactNode;
@@ -358,27 +315,43 @@ const AppComponent: React.FunctionComponent = () => {
     [fields]
   );
 
+  const formatItems = EXPORT_FORMATS.map(f => ({key: f, label: t(FORMAT_TEXT[f].label), value: f}));
+  const delimiterItems: SelectItem<{value: CsvDelimiter}>[] = [
+    {key: ';', label: t('export.delimiterSemicolon'), value: ';'},
+    {key: ',', label: t('export.delimiterComma'), value: ','}
+  ];
+  const locked = !selectedProject;
+
+  let footerNote: React.ReactNode = null;
+  if (status) {
+    footerNote = status;
+  } else if (blocker) {
+    footerNote = <Text className="warning" size={Text.Size.S}>{blocker}</Text>;
+  } else if (count !== null && count > LARGE_EXPORT_WARNING) {
+    footerNote = <Text className="warning" size={Text.Size.S}>{t('export.large')}</Text>;
+  } else if (format === 'csv') {
+    footerNote = <Text info size={Text.Size.S}>{t(FORMAT_TEXT.csv.hint)}</Text>;
+  }
+
   return (
     <I18nContext.Provider value={t}>
       <div className="app">
-        <header className="page-header">
-          <H1>{t('app.heroTitle')}</H1>
-          <Text info>{t('app.subtitle')}</Text>
-        </header>
+        {/* Everything on one Ring UI Island, sections separated by lines, in the order of the flow. */}
+        <Island className="card single-card" role="region" aria-labelledby="page-title">
+          <header className="page-header">
+            <H1 id="page-title">{t('app.heroTitle')}</H1>
+            <Text info>{t('c.subtitle')}</Text>
+          </header>
 
-        <Card
-          id={SECTION_IDS[0]}
-          icon={filterIcon}
-          title={t('b.filtersTitle')}
-          headerExtra={selectedProject && !advanced && <QuickPresets fields={fields} filters={filters} onChange={setFilters}/>}
-          aside={selectedProject && (
-            <Button inline iconRight={advanced ? undefined : newWindowIcon} onClick={toggleAdvanced}>
-              {advanced ? t('filter.visual') : t('filter.advanced')}
-            </Button>
-          )}
-        >
-          {advanced
-            ? (
+          <section id={SECTION_IDS[0]} className="section" aria-labelledby="filters-title">
+            <div className="section-head">
+              <H3 id="filters-title">{t('b.filtersTitle')}</H3>
+              {selectedProject && !advanced && (
+                <QuickPresets fields={fields} filters={filters} onChange={setFilters} showLabel={false}/>
+              )}
+            </div>
+
+            {advanced && (
               <div className="advanced">
                 <div className="advanced-project">
                   <ProjectSelect
@@ -395,125 +368,100 @@ const AppComponent: React.FunctionComponent = () => {
                   onChange={e => setCustomQuery(e.target.value)}
                   placeholder="State: Open #Unresolved"
                 />
-                <Text info>{t('filter.queryHintProject')}</Text>
-              </div>
-            )
-            : selectedProject
-              ? (
-                <FilterPanel
-                  api={api}
-                  projects={projects}
-                  fields={fields}
-                  tags={tags}
-                  savedQueries={savedQueries}
-                  filters={filters}
-                  onChange={setFilters}
-                  onSavedQuery={loadSavedQuery}
-                />
-              )
-              : (
-                // Step 1: only the project. Its fields decide which filters, columns and values exist.
-                <div className="project-first">
-                  <div className="filter-grid">
-                    <ProjectSelect
-                      projects={projects}
-                      value={selectedProject}
-                      onChange={p => setFilters(prev => ({...prev, projects: p ? [p] : []}))}
-                    />
-                  </div>
-                  <Text info>{t('filter.chooseProjectFirst')}</Text>
+                <div className="filters-toolbar">
+                  <Text info>{t('filter.queryHintProject')}</Text>
+                  <Button inline onClick={toggleAdvanced}>{t('filter.visual')}</Button>
                 </div>
-              )}
-        </Card>
-
-        {error && <Banner mode="error" withIcon>{error}</Banner>}
-
-        {/* Columns, preview and export are always shown in the order of the flow, and stay inactive
-            (dimmed, not clickable) until a project is chosen. */}
-          <Card
-            id={SECTION_IDS[1]}
-            icon={tableIcon}
-            title={t('b.columnsTitle')}
-            aside={<Text info>{t('columns.selectedShort', {count: selectedColumns.length})}</Text>}
-            disabled={!selectedProject}
-          >
-            {selectedProject
-              ? <ColumnPicker available={columns} selected={columnKeys} onChange={setColumnKeys}/>
-              : <Text info>{t('step.lockedColumns')}</Text>}
-          </Card>
-          <Card
-            id={SECTION_IDS[2]}
-            icon={eyeIcon}
-            title={t('b.previewTitle')}
-            aside={previewNote && <Text info>{previewNote}</Text>}
-            disabled={!selectedProject}
-          >
-            {selectedProject
-              ? <PreviewTable issues={preview} columns={selectedColumns} stateKeys={stateKeys} loading={checking}/>
-              : <Text info>{t('step.lockedPreview')}</Text>}
-          </Card>
-
-        <Island
-          id={SECTION_IDS[3]}
-          className={selectedProject ? 'card export-bar' : 'card export-bar card--disabled'}
-          role="region"
-          aria-labelledby="export-title"
-          {...inactiveProps(!selectedProject)}
-        >
-          {/* Row 1: title and what will be exported */}
-          <div className="export-heading">
-            <H2 id="export-title">{t('export.summary')}</H2>
-            <Text info className="export-line" aria-live="polite">
-              {'· '}
-              {issuesText}
-              {' · '}
-              {columnsText}
-              {` · .${format}`}
-            </Text>
-          </div>
-
-          {/* Row 2: format and separator (CSV only) */}
-          <div className="export-controls">
-            <Segmented<ExportFormat>
-              ariaLabel={t('export.format')}
-              value={format}
-              onChange={chooseFormat}
-              options={EXPORT_FORMATS.map(f => ({value: f, label: t(FORMAT_TEXT[f].label)}))}
-            />
-            {format === 'csv' && (
-              <Segmented<CsvDelimiter>
-                ariaLabel={t('export.delimiter')}
-                className="separator-group"
-                value={csvDelimiter}
-                onChange={chooseDelimiter}
-                options={[
-                  {value: ';', label: ';', title: t('export.delimiterSemicolon')},
-                  {value: ',', label: ',', title: t('export.delimiterComma')}
-                ]}
+              </div>
+            )}
+            {!advanced && selectedProject && (
+              <FilterPanel
+                api={api}
+                projects={projects}
+                fields={fields}
+                tags={tags}
+                savedQueries={savedQueries}
+                filters={filters}
+                onChange={setFilters}
+                onSavedQuery={loadSavedQuery}
+                showActiveFilters={false}
+                toolbarEnd={<Button inline iconRight={newWindowIcon} onClick={toggleAdvanced}>{t('filter.advanced')}</Button>}
               />
             )}
-          </div>
-
-          {/* Row 3: one line of help about the format, replaced by progress / result / warnings when relevant */}
-          <div className="export-note" aria-live="polite">
-            {status ?? (!busy && blocker
-              ? <Text className="warning">{blocker}</Text>
-              : <Text info size={Text.Size.S}>{t(FORMAT_TEXT[format].hint)}</Text>)}
-            {!busy && !blocker && exportState.phase !== 'done' && count !== null && count > LARGE_EXPORT_WARNING && (
-              <Text className="warning" size={Text.Size.S}>{` ${t('export.large')}`}</Text>
+            {!advanced && !selectedProject && (
+              // Step 1: only the project. Its fields decide which filters, columns and values exist.
+              <div className="project-first">
+                <div className="filter-grid">
+                  <ProjectSelect
+                    projects={projects}
+                    value={selectedProject}
+                    onChange={p => setFilters(prev => ({...prev, projects: p ? [p] : []}))}
+                  />
+                </div>
+                <Text info>{t('filter.chooseProjectFirst')}</Text>
+              </div>
             )}
-            {exportState.phase === 'loading' && count
-              ? <ProgressBar className="progress" value={exportState.loaded} max={count} label={t('export.loading', {loaded: exportState.loaded, total: count})}/>
-              : null}
+          </section>
+
+          {error && <Banner mode="error" withIcon>{error}</Banner>}
+
+          {/* Columns (left) and preview (right); inactive until a project is chosen. */}
+          <div className={locked ? 'columns-preview is-disabled' : 'columns-preview'} {...inactiveProps(locked)}>
+            <section id={SECTION_IDS[1]} className="section columns-pane" aria-labelledby="columns-title">
+              <div className="section-head">
+                <H3 id="columns-title">{t('columns.titleCount', {count: selectedColumns.length})}</H3>
+              </div>
+              {locked
+                ? <Text info>{t('step.lockedColumns')}</Text>
+                : <ColumnList available={columns} selected={columnKeys} onChange={setColumnKeys}/>}
+            </section>
+            <section id={SECTION_IDS[2]} className="section preview-pane" aria-labelledby="preview-title">
+              <div className="section-head">
+                <H3 id="preview-title">{t('b.previewTitle')}</H3>
+                {!locked && previewNote && <Text info className="section-aside">{previewNote}</Text>}
+              </div>
+              {locked
+                ? <Text info>{t('step.lockedPreview')}</Text>
+                : <PreviewTable issues={preview} columns={selectedColumns} stateKeys={stateKeys} loading={checking}/>}
+            </section>
           </div>
 
-          {/* Row 4: the download button on its own line (with Reset next to it) */}
-          <div className="export-actions">
-            <Button primary inline={false} icon={downloadIcon} onClick={doExport} disabled={busy || Boolean(blocker) || checking} loader={busy}>
-              {t(FORMAT_TEXT[format].download)}
-            </Button>
-            <Button onClick={reset} disabled={busy || !selectedProject}>{t('export.reset')}</Button>
-          </div>
+          {/* Footer: what will be exported on the left; format and download on the right. */}
+          <footer
+            id={SECTION_IDS[3]}
+            className={locked ? 'export-footer is-disabled' : 'export-footer'}
+            aria-label={t('export.summary')}
+            {...inactiveProps(locked)}
+          >
+            <div className="export-footer-info" aria-live="polite">
+              <Text>{issuesText}{' · '}{columnsText}</Text>
+              {footerNote}
+              {exportState.phase === 'loading' && count
+                ? <ProgressBar className="progress" value={exportState.loaded} max={count} label={t('export.loading', {loaded: exportState.loaded, total: count})}/>
+                : null}
+            </div>
+            <div className="export-footer-actions">
+              <Select<{value: ExportFormat}>
+                size={Size.AUTO}
+                data={formatItems}
+                selected={formatItems.find(i => i.value === format)}
+                onChange={(item: SelectItem<{value: ExportFormat}> | null) => item && chooseFormat(item.value)}
+                aria-label={t('export.format')}
+              />
+              {format === 'csv' && (
+                <Select<{value: CsvDelimiter}>
+                  size={Size.AUTO}
+                  data={delimiterItems}
+                  selected={delimiterItems.find(i => i.value === csvDelimiter)}
+                  onChange={(item: SelectItem<{value: CsvDelimiter}> | null) => item && chooseDelimiter(item.value)}
+                  aria-label={t('export.delimiter')}
+                />
+              )}
+              <Button primary inline={false} icon={downloadIcon} onClick={doExport} disabled={busy || Boolean(blocker) || checking} loader={busy}>
+                {t(format === 'csv' ? 'c.downloadCsv' : 'c.downloadXlsx')}
+              </Button>
+            </div>
+          </footer>
         </Island>
       </div>
     </I18nContext.Provider>

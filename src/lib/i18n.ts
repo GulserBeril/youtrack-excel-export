@@ -169,7 +169,11 @@ const en = {
   'filter.queryHintProject': 'The query is always limited to the selected project; add the other conditions here.',
   'filter.chooseProjectFirst': 'Start by choosing a project. Its fields decide the filters and columns; the columns, preview and export steps become active next.',
   'step.lockedColumns': 'Select a project to choose the columns.',
-  'step.lockedPreview': 'Select a project to see a preview.'
+  'step.lockedPreview': 'Select a project to see a preview.',
+  'c.subtitle': 'Select issues and configure the exported data.',
+  'columns.titleCount': 'Columns ({count})',
+  'c.downloadXlsx': 'Download Excel',
+  'c.downloadCsv': 'Download CSV'
 };
 
 export type MessageKey = keyof typeof en;
@@ -342,7 +346,11 @@ const tr: Record<MessageKey, string> = {
   'filter.queryHintProject': 'Sorgu her zaman seçili projeyle sınırlıdır; diğer koşulları buraya yazın.',
   'filter.chooseProjectFirst': 'Önce bir proje seçin. Filtreler ve kolonlar o projenin alanlarına göre gelir; ardından kolon, önizleme ve dışa aktarma adımları aktif olur.',
   'step.lockedColumns': 'Kolonları seçmek için bir proje seçin.',
-  'step.lockedPreview': 'Önizlemeyi görmek için bir proje seçin.'
+  'step.lockedPreview': 'Önizlemeyi görmek için bir proje seçin.',
+  'c.subtitle': 'Issue\'ları seçin ve dışa aktarılacak veriyi yapılandırın.',
+  'columns.titleCount': 'Kolonlar ({count})',
+  'c.downloadXlsx': 'Excel indir',
+  'c.downloadCsv': 'CSV indir'
 };
 
 export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;

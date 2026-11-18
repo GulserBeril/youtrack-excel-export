@@ -24,9 +24,6 @@ body {
 }
 
 .app {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--ring-unit) * 2);
   padding: calc(var(--ring-unit) * 3);
   box-sizing: border-box;
 }
@@ -59,50 +56,59 @@ body {
   border: 0;
 }
 
-/* --- Page header ----------------------------------------------------------------- */
+/* --- The single card: header, then sections separated by lines --------------------------- */
+
+.single-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: calc(var(--ring-unit) * 2.5) calc(var(--ring-unit) * 3);
+}
 
 .page-header {
   display: flex;
   flex-direction: column;
   gap: calc(var(--ring-unit) / 2);
+  padding-bottom: calc(var(--ring-unit) * 2);
+  border-bottom: 1px solid var(--ring-line-color);
 }
 
 .page-header h1 {
   margin: 0;
 }
 
-/* --- Cards (Ring UI Island): icon + title + extras on one row ---------------------------- */
-
-.card {
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) * 1.5);
   min-width: 0;
-  padding: calc(var(--ring-unit) * 2) calc(var(--ring-unit) * 2.5);
 }
 
-.card-header {
+#section-issues {
+  padding: calc(var(--ring-unit) * 2) 0;
+  border-bottom: 1px solid var(--ring-line-color);
+}
+
+.section-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--ring-unit) calc(var(--ring-unit) * 1.5);
-  margin-bottom: calc(var(--ring-unit) * 2);
+  gap: var(--ring-unit) calc(var(--ring-unit) * 2);
+  min-height: 28px;
 }
 
-.card-header h2 {
+.section-head h3 {
   margin: 0;
 }
 
-.card-icon {
-  color: var(--ring-main-color);
-}
-
-.card-aside {
+.section-aside {
   margin-left: auto;
 }
 
-/* Step 1 before a project is chosen: just the project select and a short explanation. */
-.project-first {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ring-unit);
+/* Inactive steps (no project yet): dimmed; `inert` blocks mouse, keyboard and screen readers. */
+.is-disabled {
+  opacity: 0.55;
+  user-select: none;
 }
 
 /* --- Filters ------------------------------------------------------------------------ */
@@ -112,7 +118,6 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ring-unit);
-  margin-left: calc(var(--ring-unit) * 2);
 }
 
 .filters {
@@ -129,19 +134,15 @@ body {
   align-items: end;
 }
 
-@media (width < 1400px) {
+@media (width < 1200px) {
   .filter-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (width < 800px) {
+@media (width < 760px) {
   .filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .quick-presets {
-    margin-left: 0;
   }
 }
 
@@ -166,11 +167,6 @@ body {
   color: var(--ring-secondary-color);
 }
 
-/* Button groups (Status) keep their natural width instead of stretching across the cell. */
-.field > [role='group'] {
-  align-self: flex-start;
-}
-
 .field-label > span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -189,6 +185,15 @@ body {
   gap: var(--ring-unit);
 }
 
+/* "Advanced filters" on the left, "Edit as YouTrack query" on the right. */
+.filters-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ring-unit);
+}
+
 .more-toggle svg {
   transition: transform 0.15s ease;
 }
@@ -197,137 +202,110 @@ body {
   transform: rotate(180deg);
 }
 
-.active-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ring-unit);
-  padding-top: calc(var(--ring-unit) * 1.5);
-  border-top: 1px solid var(--ring-line-color);
-}
-
 .advanced {
   display: flex;
   flex-direction: column;
   gap: var(--ring-unit);
 }
 
-/* --- Columns: search on top, field list (with tabs) left, selected columns right ----------------- */
-
-.column-picker {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: calc(var(--ring-unit) * 1.5) calc(var(--ring-unit) * 2);
+.advanced-project {
+  max-width: 320px;
 }
 
-.column-search {
-  grid-column: 1 / -1;
-}
-
-.column-source {
+.project-first {
   display: flex;
   flex-direction: column;
   gap: var(--ring-unit);
-  min-width: 0;
-  padding-right: calc(var(--ring-unit) * 2);
+}
+
+/* --- Columns (left) and preview (right) ------------------------------------------------- */
+
+.columns-preview {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 2.4fr);
+  padding: calc(var(--ring-unit) * 2) 0;
+  border-bottom: 1px solid var(--ring-line-color);
+}
+
+.columns-pane {
+  padding-right: calc(var(--ring-unit) * 2.5);
   border-right: 1px solid var(--ring-line-color);
 }
 
-@media (width < 600px) {
-  .column-picker {
+.preview-pane {
+  padding-left: calc(var(--ring-unit) * 2.5);
+}
+
+@media (width < 900px) {
+  .columns-preview {
     grid-template-columns: 1fr;
+    row-gap: calc(var(--ring-unit) * 2);
   }
 
-  .column-source {
+  .columns-pane {
     padding: 0 0 calc(var(--ring-unit) * 2);
     border-right: 0;
     border-bottom: 1px solid var(--ring-line-color);
   }
+
+  .preview-pane {
+    padding-left: 0;
+  }
 }
 
-.column-checklist {
+.column-list {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--ring-unit) * 1.5);
-  max-height: 240px;
-  padding-right: var(--ring-unit);
-  overflow-y: auto;
-}
-
-.column-group {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--ring-unit) / 2);
-}
-
-.group-title {
-  text-transform: uppercase;
-}
-
-.column-target {
-  display: flex;
-  flex-direction: column;
+  align-items: stretch;
   gap: var(--ring-unit);
-  min-width: 0;
 }
 
-.column-target-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ring-unit);
-  min-height: 28px;
-}
-
-.column-order {
+.column-rows {
   display: flex;
   flex-direction: column;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
-  border: 1px solid var(--ring-line-color);
-  border-radius: var(--ring-border-radius);
 }
 
-.column-chip {
+.column-row {
   display: flex;
   align-items: center;
   gap: var(--ring-unit);
   min-height: 30px;
-  padding: 0 var(--ring-unit);
-  border-top: 1px solid var(--ring-line-color);
+  padding: 0 4px 0 var(--ring-unit);
+  border: 1px solid var(--ring-line-color);
+  border-radius: var(--ring-border-radius);
+  background: var(--ring-sidebar-background-color);
   cursor: grab;
 }
 
-.column-chip:first-child {
-  border-top: 0;
+.column-row:hover {
+  border-color: var(--ring-border-hover-color);
 }
 
-.column-chip:hover {
-  background: var(--ring-hover-background-color);
-}
-
-.column-chip:focus-visible {
+.column-row:focus-visible {
   outline: 2px solid var(--ring-border-hover-color);
   outline-offset: -2px;
 }
 
-.column-chip--dragging {
+.column-row--dragging {
   opacity: 0.4;
 }
 
-.column-chip--over {
+.column-row--over {
   box-shadow: inset 0 2px 0 var(--ring-main-color);
+}
+
+.column-row--addable {
+  border-style: dashed;
+  background: none;
+  cursor: default;
 }
 
 .drag-handle {
   color: var(--ring-icon-secondary-color);
-}
-
-.column-index {
-  min-width: 18px;
-  color: var(--ring-secondary-color);
-  font-variant-numeric: tabular-nums;
 }
 
 .column-name {
@@ -414,57 +392,29 @@ body {
   border-radius: 50%;
 }
 
-/* --- Export summary (a normal card right after the content, left-aligned) ------------------- */
+/* --- Footer: counts on the left, format + download on the right -------------------------------- */
 
-.export-bar {
+.export-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--ring-unit) * 1.5);
+  padding-top: calc(var(--ring-unit) * 2);
+}
+
+.export-footer-info {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--ring-unit);
-}
-
-.export-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--ring-unit);
-}
-
-.export-heading h2 {
-  margin: 0;
-}
-
-.export-line {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 4px;
+  min-width: 0;
 }
 
-.export-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: calc(var(--ring-unit) * 1.5);
-}
-
-/* Single-character separator buttons (; and ,) get a comfortable click target. */
-.separator-group button {
-  min-width: 36px;
-}
-
-.export-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ring-unit);
-}
-
-.export-note {
+.export-footer-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ring-unit);
-  min-height: 20px;
 }
 
 .progress {
@@ -473,6 +423,10 @@ body {
 
 @media (width < 640px) {
   .app {
+    padding: calc(var(--ring-unit) * 1.5);
+  }
+
+  .single-card {
     padding: calc(var(--ring-unit) * 2);
   }
 }
@@ -482,15 +436,4 @@ body {
   .more-toggle svg {
     transition: none;
   }
-}
-
-/* Query-editor mode: the required project select keeps a normal field width. */
-.advanced-project {
-  max-width: 320px;
-}
-
-/* Inactive step (no project yet): dimmed; `inert` already blocks mouse, keyboard and screen readers. */
-.card--disabled {
-  opacity: 0.55;
-  user-select: none;
 }

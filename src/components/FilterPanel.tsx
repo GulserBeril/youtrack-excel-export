@@ -16,7 +16,6 @@ import type {DateRange, FieldFilter, FieldMeta, Filters, Project, ResolvedFilter
 import type {YouTrackApi} from '../lib/youtrack';
 import {DateRangeFilter} from './DateRangeFilter';
 import {FieldFilterControl, filterKindFor, userLabels} from './FieldFilterControl';
-import {Segmented} from './Segmented';
 
 /** Field filters shown in the main grid; every other field filter goes under "More filters". */
 export const PINNED_FIELDS = ['State', 'Assignee'];
@@ -33,6 +32,10 @@ interface Props {
   filters: Filters;
   onChange: (filters: Filters) => void;
   onSavedQuery: (query: SavedQuery) => void;
+  /** Extra content at the right end of the "Advanced filters" row (e.g. "Edit as YouTrack query"). */
+  toolbarEnd?: React.ReactNode;
+  /** The row of removable active-filter tags (off in the single-card layout). */
+  showActiveFilters?: boolean;
 }
 
 function Field({label, children, onRemove}: {label: string; children: React.ReactNode; onRemove?: () => void}) {
@@ -197,12 +200,12 @@ export function ProjectSelect({projects, value, onChange}: ProjectSelectProps) {
 
 // --- Quick filters (rendered next to the card title) ---------------------------
 
-export function QuickPresets({fields, filters, onChange}: Pick<Props, 'fields' | 'filters' | 'onChange'>) {
+export function QuickPresets({fields, filters, onChange, showLabel = true}: Pick<Props, 'fields' | 'filters' | 'onChange'> & {showLabel?: boolean}) {
   const t = useT();
   const presets = useMemo(() => quickPresets(fields), [fields]);
   return (
     <div className="quick-presets" role="group" aria-labelledby="quick-filters-label">
-      <Text id="quick-filters-label" info>{t('filter.quickColon')}</Text>
+      <Text id="quick-filters-label" info className={showLabel ? undefined : 'visually-hidden'}>{t('filter.quickColon')}</Text>
       {presets.map(p => {
         const active = p.active(filters);
         return (
@@ -217,8 +220,13 @@ export function QuickPresets({fields, filters, onChange}: Pick<Props, 'fields' |
 
 // --- Panel ---------------------------------------------------------------------
 
-export function FilterPanel({api, projects, fields, tags, savedQueries, filters, onChange, onSavedQuery}: Props) {
+export function FilterPanel({api, projects, fields, tags, savedQueries, filters, onChange, onSavedQuery, toolbarEnd, showActiveFilters = true}: Props) {
   const t = useT();
+  const statusItems: SelectItem<{value: ResolvedFilter}>[] = [
+    {key: 'any', label: t('filter.statusAny'), value: 'any'},
+    {key: 'unresolved', label: t('filter.statusOpen'), value: 'unresolved'},
+    {key: 'resolved', label: t('filter.statusResolved'), value: 'resolved'}
+  ];
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => onChange({...filters, [key]: value});
 
   const tagItems = useMemo(() => tags.map(tag => toItem(tag)), [tags]);
@@ -257,15 +265,11 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
         <ProjectSelect projects={projects} value={filters.projects[0]} onChange={p => set('projects', p ? [p] : [])}/>
 
         <Field label={t('filter.status')}>
-          <Segmented<ResolvedFilter>
-            ariaLabel={t('filter.status')}
-            value={filters.resolved}
-            onChange={v => set('resolved', v)}
-            options={[
-              {value: 'any', label: t('filter.statusAny')},
-              {value: 'unresolved', label: t('filter.statusOpen')},
-              {value: 'resolved', label: t('filter.statusResolved')}
-            ]}
+          <Select<{value: ResolvedFilter}>
+            size={Size.FULL}
+            data={statusItems}
+            selected={statusItems.find(i => i.value === filters.resolved)}
+            onChange={(item: SelectItem<{value: ResolvedFilter}> | null) => set('resolved', item?.value ?? 'any')}
           />
         </Field>
 
@@ -279,7 +283,7 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
         </Field>
       </div>
 
-      <div>
+      <div className="filters-toolbar">
         <Button
           inline
           iconRight={chevronDownIcon}
@@ -291,6 +295,7 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
           {moreOpen ? t('filter.less') : t('filter.more')}
           {!moreOpen && extraActive > 0 && ` (${extraActive})`}
         </Button>
+        {toolbarEnd}
       </div>
 
       {moreOpen && (
@@ -347,7 +352,7 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
         </div>
       )}
 
-      <div className="active-filters" aria-live="polite">
+      {showActiveFilters && <div className="active-filters" aria-live="polite">
         <Icon glyph={filterSmallIcon} className="muted-icon"/>
         {chips.length === 0
           ? <Text info>{t('filter.none')}</Text>
@@ -364,7 +369,7 @@ export function FilterPanel({api, projects, fields, tags, savedQueries, filters,
               </Button>
             </>
           )}
-      </div>
+      </div>}
     </div>
   );
 }
