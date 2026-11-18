@@ -4,7 +4,7 @@ import {createContext, useContext} from 'react';
 const en = {
   'app.title': 'Issue Export',
   'app.subtitle': 'Select issues, choose the columns and preview the result before exporting to Excel or CSV.',
-  'app.heroTitle': 'Export issues',
+  'app.heroTitle': 'Export Issues',
   'app.format': 'Excel (.xlsx)',
   'app.help': 'How it works',
   'app.helpBody1': 'Narrow down the issues with quick filters or the fields below. Active filters are listed at the bottom of the card.',

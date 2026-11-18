@@ -420,48 +420,48 @@ body {
   border-radius: 50%;
 }
 
-/* --- Export bar: facts on the left, actions on the right (a normal card, not pinned) ------------- */
+/* --- Export summary (a normal card right after the content, left-aligned) ------------------- */
 
 .export-bar {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--ring-unit);
 }
 
-.export-row {
+.export-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ring-unit);
+}
+
+.export-heading h2 {
+  margin: 0;
+}
+
+.export-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.export-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: calc(var(--ring-unit) * 1.5);
 }
 
-.export-facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  row-gap: var(--ring-unit);
-}
-
-.export-fact {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ring-unit);
-  padding: 0 calc(var(--ring-unit) * 2);
-  border-left: 1px solid var(--ring-line-color);
-}
-
-.export-fact:first-child {
-  padding-left: 0;
-  border-left: 0;
-}
-
-.export-fact--strong {
-  font-weight: var(--ring-font-weight-bold);
+/* Single-character separator buttons (; and ,) get a comfortable click target. */
+.separator-group button {
+  min-width: 36px;
 }
 
 .export-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--ring-unit);
 }
 
@@ -470,6 +470,7 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ring-unit);
+  min-height: 20px;
 }
 
 .progress {
@@ -479,11 +480,6 @@ body {
 @media (width < 640px) {
   .app {
     padding: calc(var(--ring-unit) * 2);
-  }
-
-  .export-fact {
-    padding-left: 0;
-    border-left: 0;
   }
 }
 

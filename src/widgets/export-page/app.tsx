@@ -6,8 +6,6 @@ import Icon from '@jetbrains/ring-ui-built/components/icon/icon';
 import Input, {Size} from '@jetbrains/ring-ui-built/components/input/input';
 import Island from '@jetbrains/ring-ui-built/components/island/island';
 import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/loader-inline';
-import Select from '@jetbrains/ring-ui-built/components/select/select';
-import type {SelectItem} from '@jetbrains/ring-ui-built/components/select/select';
 import ProgressBar from '@jetbrains/ring-ui-built/components/progress-bar/progress-bar';
 import Text from '@jetbrains/ring-ui-built/components/text/text';
 
@@ -15,12 +13,13 @@ import {ColumnPicker} from '../../components/ColumnPicker';
 import {filterKindFor} from '../../components/FieldFilterControl';
 import {FilterPanel, PINNED_FIELDS, QuickPresets} from '../../components/FilterPanel';
 import {PreviewTable} from '../../components/PreviewTable';
+import {Segmented} from '../../components/Segmented';
 import {allColumns, DEFAULT_COLUMN_KEYS} from '../../lib/columns';
 import {defaultCsvDelimiter, EXPORT_FORMATS, exportIssues} from '../../lib/exporters';
 import type {CsvDelimiter, ExportFormat} from '../../lib/exporters';
 import {createTranslator, I18nContext} from '../../lib/i18n';
 import type {MessageKey} from '../../lib/i18n';
-import {downloadIcon, eyeIcon, fileIcon, filterIcon, issueIcon, newWindowIcon, tableIcon} from '../../lib/icons';
+import {downloadIcon, eyeIcon, filterIcon, newWindowIcon, tableIcon} from '../../lib/icons';
 import {buildQuery} from '../../lib/query';
 import {EMPTY_FILTERS} from '../../lib/types';
 import type {FieldMeta, Filters, Project, RawIssue, SavedQuery} from '../../lib/types';
@@ -257,11 +256,11 @@ const AppComponent: React.FunctionComponent = () => {
   } else if (count === null) {
     issuesText = <Text className="warning">{t('export.countUnknown')}</Text>;
   } else {
-    issuesText = count === 1 ? t('export.countOne') : t('export.count', {count});
+    issuesText = count === 1 ? t('export.issuesOne') : t('export.issuesN', {count});
   }
   const columnsText = selectedColumns.length === 1
-    ? t('export.columnsSelectedOne')
-    : t('export.columnsSelected', {count: selectedColumns.length});
+    ? t('export.columnsOne')
+    : t('export.columnsN', {count: selectedColumns.length});
 
   let status: React.ReactNode = null;
   if (exportState.phase === 'loading') {
@@ -290,12 +289,6 @@ const AppComponent: React.FunctionComponent = () => {
     () => new Set(fields.filter(f => f.valueType === 'state').map(f => `cf:${f.name}`)),
     [fields]
   );
-
-  const formatItems = EXPORT_FORMATS.map(f => ({key: f, label: t(FORMAT_TEXT[f].label), value: f}));
-  const delimiterItems: {key: CsvDelimiter; label: string; value: CsvDelimiter}[] = [
-    {key: ';', label: t('export.delimiterSemicolon'), value: ';'},
-    {key: ',', label: t('export.delimiterComma'), value: ','}
-  ];
 
   return (
     <I18nContext.Provider value={t}>
@@ -365,61 +358,61 @@ const AppComponent: React.FunctionComponent = () => {
 
         {error && <Banner mode="error" withIcon>{error}</Banner>}
 
-        <Island id={SECTION_IDS[3]} className="card export-bar" role="region" aria-label={t('export.summary')}>
-          <div className="export-row">
-            <div className="export-facts" aria-live="polite">
-              <span className="export-fact export-fact--strong">
-                <Icon glyph={issueIcon} className="muted-icon"/>
-                {issuesText}
-              </span>
-              <span className="export-fact">
-                <Icon glyph={tableIcon} className="muted-icon"/>
-                <Text info>{columnsText}</Text>
-              </span>
-              <span className="export-fact">
-                <Icon glyph={fileIcon} className="muted-icon"/>
-                <Text info>{t('export.formatColon')}</Text>
-                <Select<{value: ExportFormat}>
-                  size={Size.AUTO}
-                  data={formatItems}
-                  selected={formatItems.find(i => i.value === format)}
-                  onChange={(item: SelectItem<{value: ExportFormat}> | null) => item && chooseFormat(item.value)}
-                  aria-label={t('export.format')}
-                />
-                {format === 'csv' && (
-                  <>
-                    <Text info>{t('export.separatorColon')}</Text>
-                    <Select<{value: CsvDelimiter}>
-                      size={Size.AUTO}
-                      data={delimiterItems}
-                      selected={delimiterItems.find(i => i.value === csvDelimiter)}
-                      onChange={(item: SelectItem<{value: CsvDelimiter}> | null) => item && chooseDelimiter(item.value)}
-                      aria-label={t('export.delimiter')}
-                    />
-                  </>
-                )}
-              </span>
-            </div>
-            <div className="export-actions">
-              <Button onClick={reset} disabled={busy}>{t('export.reset')}</Button>
-              <Button primary inline={false} icon={downloadIcon} onClick={doExport} disabled={busy || Boolean(blocker) || checking} loader={busy}>
-                {t(format === 'csv' ? 'export.exportCsv' : 'export.exportXlsx')}
-              </Button>
-            </div>
+        <Island id={SECTION_IDS[3]} className="card export-bar" role="region" aria-labelledby="export-title">
+          {/* Row 1: title and what will be exported */}
+          <div className="export-heading">
+            <H2 id="export-title">{t('export.summary')}</H2>
+            <Text info className="export-line" aria-live="polite">
+              {'· '}
+              {issuesText}
+              {' · '}
+              {columnsText}
+              {` · .${format}`}
+            </Text>
           </div>
-          {(status || blocker || (count !== null && count > LARGE_EXPORT_WARNING) || exportState.phase === 'loading') && (
-            <div className="export-note" aria-live="polite">
-              {status ?? (blocker
-                ? <Text className="warning">{blocker}</Text>
-                : <Text className="warning" size={Text.Size.S}>{t('export.large')}</Text>)}
-              {exportState.phase === 'loading' && count
-                ? <ProgressBar className="progress" value={exportState.loaded} max={count} label={t('export.loading', {loaded: exportState.loaded, total: count})}/>
-                : null}
-            </div>
-          )}
-          {format === 'csv' && !status && !blocker && (
-            <Text info size={Text.Size.S} className="export-hint">{t(FORMAT_TEXT.csv.hint)}</Text>
-          )}
+
+          {/* Row 2: format and separator (CSV only) */}
+          <div className="export-controls">
+            <Segmented<ExportFormat>
+              ariaLabel={t('export.format')}
+              value={format}
+              onChange={chooseFormat}
+              options={EXPORT_FORMATS.map(f => ({value: f, label: t(FORMAT_TEXT[f].label)}))}
+            />
+            {format === 'csv' && (
+              <Segmented<CsvDelimiter>
+                ariaLabel={t('export.delimiter')}
+                className="separator-group"
+                value={csvDelimiter}
+                onChange={chooseDelimiter}
+                options={[
+                  {value: ';', label: ';', title: t('export.delimiterSemicolon')},
+                  {value: ',', label: ',', title: t('export.delimiterComma')}
+                ]}
+              />
+            )}
+          </div>
+
+          {/* Row 3: one line of help about the format, replaced by progress / result / warnings when relevant */}
+          <div className="export-note" aria-live="polite">
+            {status ?? (!busy && blocker
+              ? <Text className="warning">{blocker}</Text>
+              : <Text info size={Text.Size.S}>{t(FORMAT_TEXT[format].hint)}</Text>)}
+            {!busy && !blocker && exportState.phase !== 'done' && count !== null && count > LARGE_EXPORT_WARNING && (
+              <Text className="warning" size={Text.Size.S}>{` ${t('export.large')}`}</Text>
+            )}
+            {exportState.phase === 'loading' && count
+              ? <ProgressBar className="progress" value={exportState.loaded} max={count} label={t('export.loading', {loaded: exportState.loaded, total: count})}/>
+              : null}
+          </div>
+
+          {/* Row 4: the download button on its own line (with Reset next to it) */}
+          <div className="export-actions">
+            <Button primary inline={false} icon={downloadIcon} onClick={doExport} disabled={busy || Boolean(blocker) || checking} loader={busy}>
+              {t(FORMAT_TEXT[format].download)}
+            </Button>
+            <Button onClick={reset} disabled={busy}>{t('export.reset')}</Button>
+          </div>
         </Island>
       </div>
     </I18nContext.Provider>
