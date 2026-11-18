@@ -24,6 +24,9 @@ body {
 }
 
 .app {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) * 2);
   padding: calc(var(--ring-unit) * 3);
   box-sizing: border-box;
 }
@@ -392,29 +395,68 @@ body {
   border-radius: 50%;
 }
 
-/* --- Footer: counts on the left, format + download on the right -------------------------------- */
+/* --- Export Summary: its own card below the main card (as in the previous design) ------------ */
 
-.export-footer {
+.card {
+  min-width: 0;
+  padding: calc(var(--ring-unit) * 2) calc(var(--ring-unit) * 2.5);
+}
+
+.card--disabled {
+  opacity: 0.55;
+  user-select: none;
+}
+
+
+.export-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ring-unit);
+}
+
+.export-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ring-unit);
+}
+
+.export-heading h2 {
+  margin: 0;
+}
+
+.export-line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.export-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: calc(var(--ring-unit) * 1.5);
-  padding-top: calc(var(--ring-unit) * 2);
 }
 
-.export-footer-info {
+/* Single-character separator buttons (; and ,) get a comfortable click target. */
+.separator-group button {
+  min-width: 36px;
+}
+
+.export-actions {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+  flex-wrap: wrap;
+  gap: var(--ring-unit);
 }
 
-.export-footer-actions {
+.export-note {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ring-unit);
+  min-height: 20px;
 }
 
 .progress {

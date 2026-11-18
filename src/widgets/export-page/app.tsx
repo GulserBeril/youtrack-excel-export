@@ -1,7 +1,7 @@
 import React, {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import Banner from '@jetbrains/ring-ui-built/components/banner/banner';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
-import {H1, H3} from '@jetbrains/ring-ui-built/components/heading/heading';
+import {H1, H2, H3} from '@jetbrains/ring-ui-built/components/heading/heading';
 import Icon from '@jetbrains/ring-ui-built/components/icon/icon';
 import Input, {Size} from '@jetbrains/ring-ui-built/components/input/input';
 import Island from '@jetbrains/ring-ui-built/components/island/island';
@@ -15,6 +15,7 @@ import {ColumnList} from '../../components/ColumnList';
 import {filterKindFor} from '../../components/FieldFilterControl';
 import {FilterPanel, PINNED_FIELDS, ProjectSelect, QuickPresets} from '../../components/FilterPanel';
 import {PreviewTable} from '../../components/PreviewTable';
+import {Segmented} from '../../components/Segmented';
 import {allColumns, DEFAULT_COLUMN_KEYS} from '../../lib/columns';
 import {defaultCsvDelimiter, EXPORT_FORMATS, exportIssues} from '../../lib/exporters';
 import type {CsvDelimiter, ExportFormat} from '../../lib/exporters';
@@ -270,6 +271,17 @@ const AppComponent: React.FunctionComponent = () => {
   useEffect(() => () => clearTimeout(doneTimer.current), []);
 
 
+  const reset = useCallback(() => {
+    setFilters({...EMPTY_FILTERS, fieldFilters: defaultFieldFilters(fields)});
+    setCustomQuery('');
+    setAdvanced(false);
+    const known = new Set(columns.map(c => c.key));
+    setColumnKeys(DEFAULT_COLUMN_KEYS.filter(k => known.has(k)));
+    setError(null);
+    clearTimeout(doneTimer.current);
+    setExportState({phase: 'idle'});
+  }, [fields, columns]);
+
   // --- Export bar texts ---
   let issuesText: React.ReactNode;
   if (!selectedProject) {
@@ -315,23 +327,7 @@ const AppComponent: React.FunctionComponent = () => {
     [fields]
   );
 
-  const formatItems = EXPORT_FORMATS.map(f => ({key: f, label: t(FORMAT_TEXT[f].label), value: f}));
-  const delimiterItems: SelectItem<{value: CsvDelimiter}>[] = [
-    {key: ';', label: t('export.delimiterSemicolon'), value: ';'},
-    {key: ',', label: t('export.delimiterComma'), value: ','}
-  ];
   const locked = !selectedProject;
-
-  let footerNote: React.ReactNode = null;
-  if (status) {
-    footerNote = status;
-  } else if (blocker) {
-    footerNote = <Text className="warning" size={Text.Size.S}>{blocker}</Text>;
-  } else if (count !== null && count > LARGE_EXPORT_WARNING) {
-    footerNote = <Text className="warning" size={Text.Size.S}>{t('export.large')}</Text>;
-  } else if (format === 'csv') {
-    footerNote = <Text info size={Text.Size.S}>{t(FORMAT_TEXT.csv.hint)}</Text>;
-  }
 
   return (
     <I18nContext.Provider value={t}>
@@ -426,42 +422,70 @@ const AppComponent: React.FunctionComponent = () => {
             </section>
           </div>
 
-          {/* Footer: what will be exported on the left; format and download on the right. */}
-          <footer
-            id={SECTION_IDS[3]}
-            className={locked ? 'export-footer is-disabled' : 'export-footer'}
-            aria-label={t('export.summary')}
-            {...inactiveProps(locked)}
-          >
-            <div className="export-footer-info" aria-live="polite">
-              <Text>{issuesText}{' · '}{columnsText}</Text>
-              {footerNote}
-              {exportState.phase === 'loading' && count
-                ? <ProgressBar className="progress" value={exportState.loaded} max={count} label={t('export.loading', {loaded: exportState.loaded, total: count})}/>
-                : null}
-            </div>
-            <div className="export-footer-actions">
-              <Select<{value: ExportFormat}>
-                size={Size.AUTO}
-                data={formatItems}
-                selected={formatItems.find(i => i.value === format)}
-                onChange={(item: SelectItem<{value: ExportFormat}> | null) => item && chooseFormat(item.value)}
-                aria-label={t('export.format')}
+        </Island>
+
+        {/* Export Summary: its own card below, as in the previous design. */}
+        <Island
+          id={SECTION_IDS[3]}
+          className={selectedProject ? 'card export-bar' : 'card export-bar card--disabled'}
+          role="region"
+          aria-labelledby="export-title"
+          {...inactiveProps(!selectedProject)}
+        >
+          {/* Row 1: title and what will be exported */}
+          <div className="export-heading">
+            <H2 id="export-title">{t('export.summary')}</H2>
+            <Text info className="export-line" aria-live="polite">
+              {'· '}
+              {issuesText}
+              {' · '}
+              {columnsText}
+              {` · .${format}`}
+            </Text>
+          </div>
+
+          {/* Row 2: format and separator (CSV only) */}
+          <div className="export-controls">
+            <Segmented<ExportFormat>
+              ariaLabel={t('export.format')}
+              value={format}
+              onChange={chooseFormat}
+              options={EXPORT_FORMATS.map(f => ({value: f, label: t(FORMAT_TEXT[f].label)}))}
+            />
+            {format === 'csv' && (
+              <Segmented<CsvDelimiter>
+                ariaLabel={t('export.delimiter')}
+                className="separator-group"
+                value={csvDelimiter}
+                onChange={chooseDelimiter}
+                options={[
+                  {value: ';', label: ';', title: t('export.delimiterSemicolon')},
+                  {value: ',', label: ',', title: t('export.delimiterComma')}
+                ]}
               />
-              {format === 'csv' && (
-                <Select<{value: CsvDelimiter}>
-                  size={Size.AUTO}
-                  data={delimiterItems}
-                  selected={delimiterItems.find(i => i.value === csvDelimiter)}
-                  onChange={(item: SelectItem<{value: CsvDelimiter}> | null) => item && chooseDelimiter(item.value)}
-                  aria-label={t('export.delimiter')}
-                />
-              )}
-              <Button primary inline={false} icon={downloadIcon} onClick={doExport} disabled={busy || Boolean(blocker) || checking} loader={busy}>
-                {t(format === 'csv' ? 'c.downloadCsv' : 'c.downloadXlsx')}
-              </Button>
-            </div>
-          </footer>
+            )}
+          </div>
+
+          {/* Row 3: one line of help about the format, replaced by progress / result / warnings when relevant */}
+          <div className="export-note" aria-live="polite">
+            {status ?? (!busy && blocker
+              ? <Text className="warning">{blocker}</Text>
+              : <Text info size={Text.Size.S}>{t(FORMAT_TEXT[format].hint)}</Text>)}
+            {!busy && !blocker && exportState.phase !== 'done' && count !== null && count > LARGE_EXPORT_WARNING && (
+              <Text className="warning" size={Text.Size.S}>{` ${t('export.large')}`}</Text>
+            )}
+            {exportState.phase === 'loading' && count
+              ? <ProgressBar className="progress" value={exportState.loaded} max={count} label={t('export.loading', {loaded: exportState.loaded, total: count})}/>
+              : null}
+          </div>
+
+          {/* Row 4: the download button on its own line (with Reset next to it) */}
+          <div className="export-actions">
+            <Button primary inline={false} icon={downloadIcon} onClick={doExport} disabled={busy || Boolean(blocker) || checking} loader={busy}>
+              {t(FORMAT_TEXT[format].download)}
+            </Button>
+            <Button onClick={reset} disabled={busy || !selectedProject}>{t('export.reset')}</Button>
+          </div>
         </Island>
       </div>
     </I18nContext.Provider>
