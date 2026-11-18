@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/youtrack-app.json",
+  "name": "excel-export",
+  "title": "Issue Export",
+  "description": "Filter YouTrack issues and export them to Excel (.xlsx) or CSV.",
+  "version": "0.8.5",
+  "vendor": {
+    "name": "Codeo",
+    "url": "https://www.codeo.com.tr/"
+  },
+  "icon": "icon.svg",
+  "widgets": [
+    {
+      "key": "export-page",
+      "name": "Issue Export",
+      "description": "Filter issues and export them to Excel or CSV",
+      "extensionPoint": "MAIN_MENU_ITEM",
+      "indexPath": "export-page/index.html",
+      "iconPath": "export-page/widget-icon.svg",
+      "permissions": [
+        "READ_ISSUE"
+      ]
+    }
+  ]
+}

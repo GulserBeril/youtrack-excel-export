@@ -1,0 +1,32 @@
+{
+  "name": "youtrack-issue-export",
+  "private": true,
+  "version": "0.8.5",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc -p tsconfig.app.json",
+    "build": "tsc -p tsconfig.app.json && vite build && youtrack-app app validate",
+    "pack": "npm run build && cd dist && bestzip ../youtrack-issue-export.zip *",
+    "upload": "node --env-file=.env node_modules/@jetbrains/youtrack-apps-tools/bin/youtrack-app app upload",
+    "deploy": "npm run build && npm run upload",
+    "preview:prod": "vite build --config vite.config.preview.ts && vite preview --config vite.config.preview.ts"
+  },
+  "dependencies": {
+    "@jetbrains/icons": "^5.24.0",
+    "@jetbrains/ring-ui-built": "^7.0.8",
+    "exceljs": "^4.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@jetbrains/youtrack-apps-tools": "^1.0.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "bestzip": "^2.2.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.1",
+    "vite-plugin-static-copy": "^2.2.0"
+  }
+}

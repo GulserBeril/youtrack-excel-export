@@ -1,0 +1,38 @@
+import {resolve} from 'node:path';
+import {defineConfig} from 'vite';
+import {viteStaticCopy} from 'vite-plugin-static-copy';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [
+    react(),
+    viteStaticCopy({
+      targets: [
+        {src: '../manifest.json', dest: '.'},
+        {src: '../public/*.*', dest: '.'}
+      ]
+    }),
+    viteStaticCopy({
+      // Widget icons and configurations
+      targets: [{src: 'widgets/**/*.{svg,png,jpg,json}', dest: '.'}],
+      structured: true
+    })
+  ],
+  root: './src',
+  base: '',
+  publicDir: 'public',
+  build: {
+    outDir: '../dist',
+    emptyOutDir: true,
+    copyPublicDir: false,
+    target: ['es2022'],
+    assetsDir: 'widgets/assets',
+    // ExcelJS (~940 kB) is lazy-loaded only when the user clicks Export.
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      input: {
+        exportPage: resolve(__dirname, 'src/widgets/export-page/index.html')
+      }
+    }
+  }
+});
