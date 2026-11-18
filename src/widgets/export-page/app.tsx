@@ -159,10 +159,10 @@ const AppComponent: React.FunctionComponent = () => {
   // Fields (and with them the filters and columns) always belong to the selected project ----
   const selectedProject = filters.projects[0];
 
-  // A different project starts with fresh filters: every other filter (status, quick filters,
-  // field filters, dates, tags, text and the query editor) goes back to its default. This runs for
-  // every way of changing the project (filter grid, query-editor select, removing the project chip).
-  // Columns are kept; columns the new project doesn't have are dropped when its fields arrive.
+  // A different project starts fresh: every other filter (status, quick filters, field filters,
+  // dates, tags, text and the query editor) and the column selection go back to their defaults.
+  // This runs for every way of changing the project (filter grid, query-editor select, removing
+  // the project chip). The default columns are filled in when the new project's fields arrive.
   const previousProject = useRef(selectedProject);
   useEffect(() => {
     if (previousProject.current === selectedProject) {
@@ -171,6 +171,7 @@ const AppComponent: React.FunctionComponent = () => {
     previousProject.current = selectedProject;
     setFilters({...EMPTY_FILTERS, projects: selectedProject ? [selectedProject] : []});
     setCustomQuery('');
+    setColumnKeys([]);
   }, [selectedProject]);
 
   useEffect(() => {
