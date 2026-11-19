@@ -75,11 +75,27 @@ function matches(issue: (typeof ISSUES)[number], query: string): boolean {
   if (query.includes('#Resolved') && !issue.resolved) {
     return false;
   }
-  const state = /State: ((?:\{[^}]+\}|[^\s,{]+)(?:, (?:\{[^}]+\}|[^\s,{]+))*)/.exec(query);
-  if (state) {
-    const values = state[1].split(', ').map(s => s.replace(/[{}]/g, ''));
-    const value = (issue.customFields[0].value as {name: string}).name;
-    if (!values.includes(value)) {
+  // "Field: a, {b c}" for every enum/user field, Tag and Reporter (values of one field are OR-ed).
+  const VALUES = String.raw`((?:\{[^}]+\}|[^\s,{]+)(?:, (?:\{[^}]+\}|[^\s,{]+))*)`;
+  const names = [...issue.customFields.map(f => f.name), 'Tag', 'Reporter'];
+  for (const name of names) {
+    const key = name.includes(' ') ? `\\{${name}\\}` : name;
+    const m = new RegExp(`(?:^| )${key}: ${VALUES}`, 'i').exec(query);
+    if (!m) {
+      continue;
+    }
+    const wanted = m[1].split(', ').map(v => v.replace(/[{}]/g, ''));
+    let actual: string[];
+    if (name === 'Tag') {
+      actual = issue.tags.map(tag => tag.name);
+    } else if (name === 'Reporter') {
+      actual = [issue.reporter.login];
+    } else {
+      const v = issue.customFields.find(f => f.name === name)?.value as {name?: string; login?: string} | null;
+      actual = v ? [v.name ?? v.login ?? ''] : ['Unassigned'];
+    }
+    // "me" is the first sample user in the mock.
+    if (!wanted.some(w => actual.includes(w) || (w === 'me' && actual.includes('ayse')))) {
       return false;
     }
   }

@@ -8,12 +8,12 @@ import Island from '@jetbrains/ring-ui-built/components/island/island';
 import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/loader-inline';
 import Select from '@jetbrains/ring-ui-built/components/select/select';
 import type {SelectItem} from '@jetbrains/ring-ui-built/components/select/select';
-import QueryAssist from '@jetbrains/ring-ui-built/components/query-assist/query-assist';
-import type {QueryAssistRequestParams} from '@jetbrains/ring-ui-built/components/query-assist/query-assist';
 import ProgressBar from '@jetbrains/ring-ui-built/components/progress-bar/progress-bar';
 import Text from '@jetbrains/ring-ui-built/components/text/text';
 
 import {ColumnList} from '../../components/ColumnList';
+import {chipsToQuery, FilterBar} from '../../components/FilterBar';
+import type {FilterChip} from '../../components/FilterBar';
 import {filterKindFor} from '../../components/FieldFilterControl';
 import {PINNED_FIELDS, ProjectSelect} from '../../components/FilterPanel';
 import {PreviewTable} from '../../components/PreviewTable';
@@ -111,13 +111,12 @@ const AppComponent: React.FunctionComponent = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [fields, setFields] = useState<FieldMeta[]>([]);
 
-  // Filtering is YouTrack's own search: the selected project plus a query typed in the same
-  // query box (Ring UI QueryAssist + YouTrack search assist) as the issue list.
+  // Filtering works like YouTrack's issue-list search bar: the selected project, then
+  // "Field is value, value" chips and free text. Every change applies at once.
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  // customQuery is the applied query; draftQuery is what is being typed. Like YouTrack's issue list,
-  // the query is applied on Enter, the search button or clear, not on every keystroke.
-  const [customQuery, setCustomQuery] = useState('');
-  const [draftQuery, setDraftQuery] = useState('');
+  const [chips, setChips] = useState<FilterChip[]>([]);
+  const [searchText, setSearchText] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [columnKeys, setColumnKeys] = useState<string[]>([]);
 
   const [count, setCount] = useState<number | null>(null);
@@ -138,6 +137,7 @@ const AppComponent: React.FunctionComponent = () => {
   // Initial metadata ---------------------------------------------------------
   useEffect(() => {
     api.getProjects().then(setProjects).catch(e => setError(t('error.load', {error: errorText(e)})));
+    api.getTags().then(setTags).catch(() => setTags([]));
   }, []);
 
   // Fields (and with them the filters and columns) always belong to the selected project ----
@@ -154,8 +154,8 @@ const AppComponent: React.FunctionComponent = () => {
     }
     previousProject.current = selectedProject;
     setFilters({...EMPTY_FILTERS, projects: selectedProject ? [selectedProject] : []});
-    setCustomQuery('');
-    setDraftQuery('');
+    setChips([]);
+    setSearchText('');
     setColumnKeys([]);
   }, [selectedProject]);
 
@@ -196,18 +196,8 @@ const AppComponent: React.FunctionComponent = () => {
   );
   // Exports are always scoped to exactly one project: the query box holds only the other
   // conditions and the selected project is prepended, so typing another project can't widen it.
-  const query = [buildQuery({...EMPTY_FILTERS, projects: filters.projects}), customQuery.trim()].filter(Boolean).join(' ');
-
-  // Suggestions for the query box come from YouTrack, scoped to the selected project.
-  const projectId = projects.find(p => p.shortName === selectedProject)?.id;
-  const assist = useCallback(async ({query: q, caret}: QueryAssistRequestParams) => {
-    const res = await api.searchAssist(q, caret, projectId);
-    return {
-      query: res.query ?? q,
-      caret: res.caret ?? caret,
-      suggestions: (res.suggestions ?? []).map(s => ({...s, description: s.description ?? '', group: s.group ?? ''}))
-    };
-  }, [projectId]);
+  const query = [buildQuery({...EMPTY_FILTERS, projects: filters.projects}), chipsToQuery(chips), searchText.trim()]
+    .filter(Boolean).join(' ');
 
   // Debounced count + preview rows --------------------------------------------
   useEffect(() => {
@@ -269,8 +259,8 @@ const AppComponent: React.FunctionComponent = () => {
 
   const reset = useCallback(() => {
     setFilters({...EMPTY_FILTERS, fieldFilters: defaultFieldFilters(fields)});
-    setCustomQuery('');
-    setDraftQuery('');
+    setChips([]);
+    setSearchText('');
     const known = new Set(columns.map(c => c.key));
     setColumnKeys(DEFAULT_COLUMN_KEYS.filter(k => known.has(k)));
     setError(null);
@@ -349,35 +339,18 @@ const AppComponent: React.FunctionComponent = () => {
                   onChange={p => setFilters(prev => ({...prev, projects: p ? [p] : []}))}
                 />
               </div>
-              <div className="field query-field">
-                <div className="field-label"><span>{t('filter.queryLabel')}</span></div>
-                <QueryAssist
-                  key={selectedProject ?? 'none'}
-                  size={Size.FULL}
-                  query={draftQuery}
-                  dataSource={assist}
-                  placeholder={t('filter.queryPlaceholder')}
-                  disabled={!selectedProject}
-                  glass
-                  clear
-                  autoOpen
-                  delay={150}
-                  onChange={({query: q}) => setDraftQuery(q)}
-                  onApply={({query: q}) => {
-                    setDraftQuery(q);
-                    setCustomQuery(q);
-                  }}
-                  onClear={() => {
-                    setDraftQuery('');
-                    setCustomQuery('');
-    setDraftQuery('');
-                  }}
-                />
-              </div>
+              <FilterBar
+                fields={fields}
+                chips={chips}
+                text={searchText}
+                tags={tags}
+                disabled={!selectedProject}
+                onChipsChange={setChips}
+                onTextChange={setSearchText}
+                searchUsers={api.searchUsers}
+              />
             </div>
-            {selectedProject && draftQuery.trim() !== customQuery.trim()
-              ? <Text className="warning">{t('filter.queryPending')}</Text>
-              : <Text info>{selectedProject ? t('filter.queryHintProject') : t('filter.chooseProjectFirst')}</Text>}
+            <Text info>{selectedProject ? t('filter.queryHintProject') : t('filter.chooseProjectFirst')}</Text>
           </section>
 
           {error && <Banner mode="error" withIcon>{error}</Banner>}

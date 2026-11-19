@@ -491,3 +491,57 @@ body {
   width: 100%;
   max-width: 300px;
 }
+
+/* Filter bar shaped like YouTrack's issue-list search: chips + "+" + free text in one box. */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--ring-unit) / 2);
+  min-height: calc(var(--ring-unit) * 4);
+  padding: calc(var(--ring-unit) / 2);
+  border: 1px solid var(--ring-borders-color);
+  border-radius: var(--ring-border-radius);
+  background-color: var(--ring-content-background-color);
+}
+
+.filter-bar:focus-within {
+  border-color: var(--ring-main-color);
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--ring-unit) / 2);
+  max-width: 100%;
+  padding-left: calc(var(--ring-unit) / 2);
+  border-radius: var(--ring-border-radius);
+  background-color: var(--ring-secondary-background-color);
+}
+
+.filter-chip-anchor {
+  display: inline-flex;
+}
+
+.filter-chip-field {
+  display: inline-flex;
+  gap: calc(var(--ring-unit) / 2);
+  color: var(--ring-text-color);
+}
+
+.filter-chip-op {
+  color: var(--ring-secondary-color);
+}
+
+.filter-chip-value {
+  margin: 0;
+}
+
+.filter-add {
+  display: inline-flex;
+}
+
+.filter-text {
+  flex: 1 1 160px;
+  min-width: 160px;
+}
