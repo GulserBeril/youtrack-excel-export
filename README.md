@@ -24,15 +24,9 @@ etiketler, metin, sorgu kutusu) ve kolon seçimi sıfırlanır; kolonlar yeni pr
 
 Sayfa dört bölümden oluşur:
 
-1. **Issue filtreleri**
-   - Başlık satırında hızlı filtreler (Açık olanlar, Bana atananlar, Bu ay oluşturulanlar, Son 7 günde güncellenenler)
-     ve sağda "YouTrack sorgusu olarak düzenle"
-   - **Proje zorunlu ve tektir:** proje seçilmeden dışa aktarma butonu pasiftir; aynı anda yalnızca bir proje seçilebilir.
-     "YouTrack sorgusu olarak düzenle" modunda da proje ayrı bir alanda seçilir ve sorguya her zaman eklenir,
-     böylece sorgu kutusuna başka proje yazılarak kural aşılamaz
-   - Tek satırda: Proje (zorunlu), Durum (Tümü / Açık / Çözülmüş), State, Assignee, Oluşturulma, Güncellenme
-   - Gelişmiş filtreler: etiketler, metin, kayıtlı arama ve diğer custom field'lar
-   - Aktif filtreler tek tek kaldırılabilen etiketler olarak listelenir
+1. **Issue filtreleri**: zorunlu tek proje seçimi + YouTrack'ın kendi arama kutusu (Ring UI `QueryAssist`).
+   Öneriler YouTrack'ın `search/assist` servisinden, seçili projeye göre gelir; sözdizimi issue listesindekiyle aynıdır.
+   Sorgu her zaman seçili projeyle sınırlanır (proje sorguya otomatik eklenir).
 2. **Kolonlar**: üstte arama; solda Standart / Özel / Tüm alanlar sekmeleriyle onay kutuları; sağda numaralı ve
    sürüklenebilir seçili kolonlar (klavye: satıra odaklanıp Alt+↑/↓), "Sırayı sıfırla"
 3. **Önizleme**: seçili kolonlarla ilk 5 satır

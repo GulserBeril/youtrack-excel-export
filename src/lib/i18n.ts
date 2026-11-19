@@ -63,7 +63,7 @@ const en = {
   'filter.none': 'No filters: all issues you can see will be exported.',
   'filter.advanced': 'Edit as YouTrack query',
   'filter.visual': 'Back to simple filters',
-  'filter.queryLabel': 'YouTrack query',
+  'filter.queryLabel': 'Query',
   'filter.queryHint': 'Uses the same search syntax as the YouTrack issue list.',
 
   'date.any': 'Any time',
@@ -166,14 +166,15 @@ const en = {
   'export.exportCsv': 'Export to CSV',
   'filter.projectSelect': 'Select a project',
   'export.noProject': 'Select a project to export.',
-  'filter.queryHintProject': 'The query is always limited to the selected project; add the other conditions here.',
-  'filter.chooseProjectFirst': 'Start by choosing a project. Its fields decide the filters and columns; the columns, preview and export steps become active next.',
+  'filter.queryHintProject': 'Same search as the YouTrack issue list, with its suggestions. Results are always limited to the selected project.',
+  'filter.chooseProjectFirst': 'Start by choosing a project. Then filter its issues with YouTrack\'s search; the columns, preview and export steps become active.',
   'step.lockedColumns': 'Select a project to choose the columns.',
   'step.lockedPreview': 'Select a project to see a preview.',
   'c.subtitle': 'Select issues and configure the exported data.',
   'columns.titleCount': 'Columns ({count})',
   'c.downloadXlsx': 'Download Excel',
-  'c.downloadCsv': 'Download CSV'
+  'c.downloadCsv': 'Download CSV',
+  'filter.queryPlaceholder': 'Search for text or add a filter'
 };
 
 export type MessageKey = keyof typeof en;
@@ -240,7 +241,7 @@ const tr: Record<MessageKey, string> = {
   'filter.none': 'Filtre yok: görebildiğiniz tüm issue\'lar dışa aktarılacak.',
   'filter.advanced': 'YouTrack sorgusu olarak düzenle',
   'filter.visual': 'Basit filtrelere dön',
-  'filter.queryLabel': 'YouTrack sorgusu',
+  'filter.queryLabel': 'Sorgu',
   'filter.queryHint': 'YouTrack issue listesindeki arama sözdiziminin aynısı.',
 
   'date.any': 'Her zaman',
@@ -343,14 +344,15 @@ const tr: Record<MessageKey, string> = {
   'export.exportCsv': 'CSV\'ye aktar',
   'filter.projectSelect': 'Proje seçin',
   'export.noProject': 'Dışa aktarmak için bir proje seçin.',
-  'filter.queryHintProject': 'Sorgu her zaman seçili projeyle sınırlıdır; diğer koşulları buraya yazın.',
-  'filter.chooseProjectFirst': 'Önce bir proje seçin. Filtreler ve kolonlar o projenin alanlarına göre gelir; ardından kolon, önizleme ve dışa aktarma adımları aktif olur.',
+  'filter.queryHintProject': 'YouTrack issue listesindeki aramanın aynısı, önerileriyle birlikte. Sonuçlar her zaman seçili projeyle sınırlıdır.',
+  'filter.chooseProjectFirst': 'Önce bir proje seçin. Ardından issue\'larını YouTrack aramasıyla süzün; kolon, önizleme ve dışa aktarma adımları aktif olur.',
   'step.lockedColumns': 'Kolonları seçmek için bir proje seçin.',
   'step.lockedPreview': 'Önizlemeyi görmek için bir proje seçin.',
   'c.subtitle': 'Issue\'ları seçin ve dışa aktarılacak veriyi yapılandırın.',
   'columns.titleCount': 'Kolonlar ({count})',
   'c.downloadXlsx': 'Excel indir',
-  'c.downloadCsv': 'CSV indir'
+  'c.downloadCsv': 'CSV indir',
+  'filter.queryPlaceholder': 'Metin arayın veya filtre ekleyin'
 };
 
 export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;

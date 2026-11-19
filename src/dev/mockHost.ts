@@ -121,6 +121,57 @@ function fieldsFor(projectId: string) {
     .map(f => ({...f, id: `${projectId}:${f.field.name}`}));
 }
 
+/**
+ * A tiny stand-in for YouTrack's search assist: completes the word at the caret with
+ * field names ("State: "), values of the field being typed ("State: Op" -> "Open") and a few
+ * keywords. Real YouTrack does much more; this only lets the query box be tried locally.
+ */
+interface AssistBody {
+  query: string;
+  caret: number;
+  folders?: {id: string}[];
+}
+
+function assist({query, caret, folders}: AssistBody) {
+  const projectId = folders?.[0]?.id ?? '0-1';
+  const fields = fieldsFor(projectId);
+  const before = query.slice(0, caret);
+  const wordStart = Math.max(before.lastIndexOf(' '), before.lastIndexOf(',')) + 1;
+  const word = before.slice(wordStart).toLowerCase();
+  const fieldBefore = /([A-Za-z ]+):\s*(?:[^:]*,\s*)?[^:,]*$/.exec(before)?.[1]?.trim().split(' ').pop();
+  const meta = fields.find(f => f.field.name.toLowerCase() === fieldBefore?.toLowerCase());
+
+  let options: {option: string; description: string; group: string}[];
+  if (meta && 'bundle' in meta && meta.bundle) {
+    options = meta.bundle.values.map(v => ({option: v.name.includes(' ') ? `{${v.name}}` : v.name, description: meta.field.name, group: 'Values'}));
+  } else if (meta?.field.name === 'Assignee') {
+    const logins = PROJECT_USERS[projectId] ?? [];
+    options = ['me', ...logins].map(l => ({option: l, description: 'User', group: 'Users'}));
+  } else {
+    options = [
+      ...fields.map(f => ({option: `${f.field.name.includes(' ') ? `{${f.field.name}}` : f.field.name}: `, description: 'Field', group: 'Fields'})),
+      {option: '#Unresolved', description: 'Unresolved issues', group: 'Keywords'},
+      {option: '#Resolved', description: 'Resolved issues', group: 'Keywords'},
+      {option: 'created: ', description: 'Creation date', group: 'Fields'},
+      {option: 'updated: ', description: 'Last update', group: 'Fields'},
+      {option: 'tag: ', description: 'Tag', group: 'Fields'}
+    ];
+  }
+  const matching = options.filter(o => o.option.toLowerCase().startsWith(word)).slice(0, 12);
+  return {
+    query,
+    caret,
+    suggestions: matching.map(o => ({
+      ...o,
+      completionStart: wordStart,
+      completionEnd: caret,
+      matchingStart: 0,
+      matchingEnd: word.length,
+      caret: wordStart + o.option.length
+    }))
+  };
+}
+
 const delay = <T>(value: T, ms = 150) => new Promise<T>(resolve => setTimeout(() => resolve(value), ms));
 
 interface Params {
@@ -155,6 +206,9 @@ async function fetchYouTrack(url: string, params: Params = {}): Promise<unknown>
       {id: 's1', name: 'Açık hatalarım', query: 'Type: Bug #Unresolved Assignee: me'},
       {id: 's2', name: 'Web — bu sprint', query: 'project: WEB State: {In Progress}'}
     ]);
+  }
+  if (url === 'search/assist') {
+    return delay(assist(params.body as AssistBody), 80);
   }
   if (url === 'issuesGetter/count') {
     const query = params.body?.query ?? '';

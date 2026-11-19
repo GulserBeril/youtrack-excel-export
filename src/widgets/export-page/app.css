@@ -479,3 +479,17 @@ body {
     transition: none;
   }
 }
+
+/* Filtering = required project select + YouTrack's own query box (QueryAssist), side by side. */
+.query-filters {
+  display: grid;
+  grid-template-columns: minmax(200px, 300px) minmax(0, 1fr);
+  gap: calc(var(--ring-unit) * 2);
+  align-items: end;
+}
+
+@media (width < 700px) {
+  .query-filters {
+    grid-template-columns: 1fr;
+  }
+}

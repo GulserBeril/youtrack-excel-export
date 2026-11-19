@@ -28,6 +28,23 @@ interface ProjectCustomField {
   bundle?: {values?: {name: string; archived?: boolean}[]};
 }
 
+export interface SearchAssistSuggestion {
+  option: string;
+  description: string;
+  group: string;
+  caret: number;
+  completionStart: number;
+  completionEnd: number;
+  matchingStart: number;
+  matchingEnd: number;
+}
+
+export interface SearchAssistResponse {
+  query?: string;
+  caret?: number;
+  suggestions?: SearchAssistSuggestion[];
+}
+
 interface UserBundleField {
   bundle?: {aggregatedUsers?: UserRef[]};
 }
@@ -110,6 +127,18 @@ export function createYouTrackApi(host: HostAPI) {
       }
       return null;
     },
+
+    /**
+     * Completion for the query box, from YouTrack's own search assist (the same suggestions as the
+     * search bar in the issue list). Scoped to the selected project through `folders`.
+     * Only the documented fields are requested.
+     */
+    searchAssist: (query: string, caret: number, projectId?: string): Promise<SearchAssistResponse> =>
+      host.fetchYouTrack<SearchAssistResponse>('search/assist', {
+        method: 'POST',
+        query: {fields: 'query,caret,suggestions(option,description,group,caret,completionStart,completionEnd,matchingStart,matchingEnd)'},
+        body: {query, caret, folders: projectId ? [{id: projectId, $type: 'Project'}] : []}
+      }),
 
     /** First few issues for the on-page preview. */
     fetchPreview: (query: string, top = 5): Promise<RawIssue[]> =>

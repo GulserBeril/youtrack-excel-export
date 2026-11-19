@@ -3,17 +3,19 @@ import Banner from '@jetbrains/ring-ui-built/components/banner/banner';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import {H1, H2, H3} from '@jetbrains/ring-ui-built/components/heading/heading';
 import Icon from '@jetbrains/ring-ui-built/components/icon/icon';
-import Input, {Size} from '@jetbrains/ring-ui-built/components/input/input';
+import {Size} from '@jetbrains/ring-ui-built/components/input/input';
 import Island from '@jetbrains/ring-ui-built/components/island/island';
 import LoaderInline from '@jetbrains/ring-ui-built/components/loader-inline/loader-inline';
 import Select from '@jetbrains/ring-ui-built/components/select/select';
 import type {SelectItem} from '@jetbrains/ring-ui-built/components/select/select';
+import QueryAssist from '@jetbrains/ring-ui-built/components/query-assist/query-assist';
+import type {QueryAssistRequestParams} from '@jetbrains/ring-ui-built/components/query-assist/query-assist';
 import ProgressBar from '@jetbrains/ring-ui-built/components/progress-bar/progress-bar';
 import Text from '@jetbrains/ring-ui-built/components/text/text';
 
 import {ColumnList} from '../../components/ColumnList';
 import {filterKindFor} from '../../components/FieldFilterControl';
-import {FilterPanel, PINNED_FIELDS, ProjectSelect, QuickPresets} from '../../components/FilterPanel';
+import {PINNED_FIELDS, ProjectSelect} from '../../components/FilterPanel';
 import {PreviewTable} from '../../components/PreviewTable';
 import {Segmented} from '../../components/Segmented';
 import {allColumns, DEFAULT_COLUMN_KEYS} from '../../lib/columns';
@@ -21,10 +23,10 @@ import {defaultCsvDelimiter, EXPORT_FORMATS, exportIssues} from '../../lib/expor
 import type {CsvDelimiter, ExportFormat} from '../../lib/exporters';
 import {createTranslator, I18nContext} from '../../lib/i18n';
 import type {MessageKey} from '../../lib/i18n';
-import {downloadIcon, newWindowIcon} from '../../lib/icons';
+import {downloadIcon} from '../../lib/icons';
 import {buildQuery} from '../../lib/query';
 import {EMPTY_FILTERS} from '../../lib/types';
-import type {FieldFilter, FieldMeta, Filters, Project, RawIssue, SavedQuery} from '../../lib/types';
+import type {FieldFilter, FieldMeta, Filters, Project, RawIssue} from '../../lib/types';
 import {createYouTrackApi} from '../../lib/youtrack';
 
 // Register the widget in YouTrack. See https://www.jetbrains.com/help/youtrack/devportal-apps/apps-host-api.html
@@ -108,11 +110,10 @@ export function inactiveProps(disabled: boolean | undefined): Record<string, str
 const AppComponent: React.FunctionComponent = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [fields, setFields] = useState<FieldMeta[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
 
+  // Filtering is YouTrack's own search: the selected project plus a query typed in the same
+  // query box (Ring UI QueryAssist + YouTrack search assist) as the issue list.
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [advanced, setAdvanced] = useState(false);
   const [customQuery, setCustomQuery] = useState('');
   const [columnKeys, setColumnKeys] = useState<string[]>([]);
 
@@ -133,11 +134,7 @@ const AppComponent: React.FunctionComponent = () => {
 
   // Initial metadata ---------------------------------------------------------
   useEffect(() => {
-    Promise.all([
-      api.getProjects().then(setProjects),
-      api.getTags().then(setTags).catch(() => setTags([])),
-      api.getSavedQueries().then(setSavedQueries).catch(() => setSavedQueries([]))
-    ]).catch(e => setError(t('error.load', {error: errorText(e)})));
+    api.getProjects().then(setProjects).catch(e => setError(t('error.load', {error: errorText(e)})));
   }, []);
 
   // Fields (and with them the filters and columns) always belong to the selected project ----
@@ -193,11 +190,20 @@ const AppComponent: React.FunctionComponent = () => {
     () => columnKeys.map(k => columns.find(c => c.key === k)).filter((c): c is NonNullable<typeof c> => Boolean(c)),
     [columnKeys, columns]
   );
-  // Exports are always scoped to exactly one project. In query-editor mode the editor holds only the
-  // other conditions, and the selected project is prepended, so the rule can't be bypassed by typing.
-  const query = advanced
-    ? [buildQuery({...EMPTY_FILTERS, projects: filters.projects}), customQuery.trim()].filter(Boolean).join(' ')
-    : buildQuery(filters);
+  // Exports are always scoped to exactly one project: the query box holds only the other
+  // conditions and the selected project is prepended, so typing another project can't widen it.
+  const query = [buildQuery({...EMPTY_FILTERS, projects: filters.projects}), customQuery.trim()].filter(Boolean).join(' ');
+
+  // Suggestions for the query box come from YouTrack, scoped to the selected project.
+  const projectId = projects.find(p => p.shortName === selectedProject)?.id;
+  const assist = useCallback(async ({query: q, caret}: QueryAssistRequestParams) => {
+    const res = await api.searchAssist(q, caret, projectId);
+    return {
+      query: res.query ?? q,
+      caret: res.caret ?? caret,
+      suggestions: (res.suggestions ?? []).map(s => ({...s, description: s.description ?? '', group: s.group ?? ''}))
+    };
+  }, [projectId]);
 
   // Debounced count + preview rows --------------------------------------------
   useEffect(() => {
@@ -226,20 +232,6 @@ const AppComponent: React.FunctionComponent = () => {
       clearTimeout(timer);
     };
   }, [query, selectedProject]);
-
-  const toggleAdvanced = useCallback(() => {
-    // Switching to the query editor starts from the visual filters, without the project
-    // (the project stays in its own required select and is always added to the query).
-    if (!advanced) {
-      setCustomQuery(buildQuery({...filters, projects: []}));
-    }
-    setAdvanced(!advanced);
-  }, [advanced, filters]);
-
-  const loadSavedQuery = useCallback((saved: SavedQuery) => {
-    setCustomQuery(saved.query);
-    setAdvanced(true);
-  }, []);
 
   const busy = exportState.phase === 'loading' || exportState.phase === 'building';
 
@@ -274,7 +266,6 @@ const AppComponent: React.FunctionComponent = () => {
   const reset = useCallback(() => {
     setFilters({...EMPTY_FILTERS, fieldFilters: defaultFieldFilters(fields)});
     setCustomQuery('');
-    setAdvanced(false);
     const known = new Set(columns.map(c => c.key));
     setColumnKeys(DEFAULT_COLUMN_KEYS.filter(k => known.has(k)));
     setError(null);
@@ -342,61 +333,36 @@ const AppComponent: React.FunctionComponent = () => {
           <section id={SECTION_IDS[0]} className="section" aria-labelledby="filters-title">
             <div className="section-head">
               <H3 id="filters-title">{t('b.filtersTitle')}</H3>
-              {selectedProject && !advanced && (
-                <QuickPresets fields={fields} filters={filters} onChange={setFilters} showLabel={false}/>
-              )}
             </div>
 
-            {advanced && (
-              <div className="advanced">
-                <div className="advanced-project">
-                  <ProjectSelect
-                    projects={projects}
-                    value={selectedProject}
-                    onChange={p => setFilters(prev => ({...prev, projects: p ? [p] : []}))}
-                  />
-                </div>
-                <Input
-                  multiline
-                  size={Size.FULL}
-                  label={t('filter.queryLabel')}
-                  value={customQuery}
-                  onChange={e => setCustomQuery(e.target.value)}
-                  placeholder="State: Open #Unresolved"
+            {/* 1) the required project, 2) YouTrack's own query box for every other condition. */}
+            <div className="query-filters">
+              <div className="query-project">
+                <ProjectSelect
+                  projects={projects}
+                  value={selectedProject}
+                  onChange={p => setFilters(prev => ({...prev, projects: p ? [p] : []}))}
                 />
-                <div className="filters-toolbar">
-                  <Text info>{t('filter.queryHintProject')}</Text>
-                  <Button inline onClick={toggleAdvanced}>{t('filter.visual')}</Button>
-                </div>
               </div>
-            )}
-            {!advanced && selectedProject && (
-              <FilterPanel
-                api={api}
-                projects={projects}
-                fields={fields}
-                tags={tags}
-                savedQueries={savedQueries}
-                filters={filters}
-                onChange={setFilters}
-                onSavedQuery={loadSavedQuery}
-                showActiveFilters={false}
-                toolbarEnd={<Button inline iconRight={newWindowIcon} onClick={toggleAdvanced}>{t('filter.advanced')}</Button>}
-              />
-            )}
-            {!advanced && !selectedProject && (
-              // Step 1: only the project. Its fields decide which filters, columns and values exist.
-              <div className="project-first">
-                <div className="filter-grid">
-                  <ProjectSelect
-                    projects={projects}
-                    value={selectedProject}
-                    onChange={p => setFilters(prev => ({...prev, projects: p ? [p] : []}))}
-                  />
-                </div>
-                <Text info>{t('filter.chooseProjectFirst')}</Text>
+              <div className="field query-field">
+                <div className="field-label"><span>{t('filter.queryLabel')}</span></div>
+                <QueryAssist
+                  key={selectedProject ?? 'none'}
+                  size={Size.FULL}
+                  query={customQuery}
+                  dataSource={assist}
+                  placeholder={t('filter.queryPlaceholder')}
+                  disabled={!selectedProject}
+                  glass
+                  clear
+                  delay={150}
+                  onChange={({query: q}) => setCustomQuery(q)}
+                  onApply={({query: q}) => setCustomQuery(q)}
+                  onClear={() => setCustomQuery('')}
+                />
               </div>
-            )}
+            </div>
+            <Text info>{selectedProject ? t('filter.queryHintProject') : t('filter.chooseProjectFirst')}</Text>
           </section>
 
           {error && <Banner mode="error" withIcon>{error}</Banner>}
