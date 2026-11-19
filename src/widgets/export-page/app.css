@@ -480,16 +480,14 @@ body {
   }
 }
 
-/* Filtering = required project select + YouTrack's own query box (QueryAssist), side by side. */
+/* Filtering = required project select, and below it YouTrack's own query box (QueryAssist), full width. */
 .query-filters {
-  display: grid;
-  grid-template-columns: minmax(200px, 300px) minmax(0, 1fr);
-  gap: calc(var(--ring-unit) * 2);
-  align-items: end;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--ring-unit) * 1.5);
 }
 
-@media (width < 700px) {
-  .query-filters {
-    grid-template-columns: 1fr;
-  }
+.query-project {
+  width: 100%;
+  max-width: 300px;
 }
