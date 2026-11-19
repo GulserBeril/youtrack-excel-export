@@ -62,7 +62,15 @@ const ISSUES = Array.from({length: 137}, (_, i) => {
 
 /** Very small subset of the query language, enough to make counts react to filters. */
 function matches(issue: (typeof ISSUES)[number], query: string): boolean {
-  const project = /project: ([^#]+?)(?= [A-Z{#]|$)/.exec(query);
+  const project = /project: ((?:\{[^}]+\}|[^\s,{]+)(?:, (?:\{[^}]+\}|[^\s,{]+))*)/.exec(query);
+  // Free text: words that are not part of a "Field: values" condition must appear in the summary.
+  const text = query
+    .replace(/(?:\{[^}]+\}|[\w-]+): (?:\{[^}]+\}|[^\s,{]+)(?:, (?:\{[^}]+\}|[^\s,{]+))*/g, '')
+    .replace(/#\w+/g, '')
+    .trim();
+  if (text && !text.toLocaleLowerCase().split(/\s+/).every(w => issue.summary.toLocaleLowerCase().includes(w))) {
+    return false;
+  }
   if (project) {
     const names = project[1].split(',').map(s => s.trim());
     if (!names.includes(issue.project.shortName)) {

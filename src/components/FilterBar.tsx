@@ -1,6 +1,8 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import Button from '@jetbrains/ring-ui-built/components/button/button';
 import Input, {Size} from '@jetbrains/ring-ui-built/components/input/input';
+import PopupMenu from '@jetbrains/ring-ui-built/components/popup-menu/popup-menu';
+import {Directions} from '@jetbrains/ring-ui-built/components/popup/popup.consts';
 import Select from '@jetbrains/ring-ui-built/components/select/select';
 import type {SelectItem} from '@jetbrains/ring-ui-built/components/select/select';
 import Tag from '@jetbrains/ring-ui-built/components/tag/tag';
@@ -92,12 +94,30 @@ interface Props {
   searchUsers: (text: string) => Promise<UserRef[]>;
 }
 
+/** One row of the typing suggestions: a field to filter by, a value of a field, or a text search. */
+interface Suggestion {
+  kind: 'field' | 'value' | 'text';
+  field?: string;
+  value: string;
+  label: string;
+  description: string;
+}
+
+const MAX_VALUE_SUGGESTIONS = 8;
+
 export function FilterBar({fields, chips, text, disabled, tags, onChipsChange, onTextChange, searchUsers}: Props) {
   const t = useT();
   const options = useMemo(() => fieldOptions(fields), [fields]);
   // Field whose value list opens right after it was picked (as in YouTrack).
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [addKey, setAddKey] = useState(0);
+  // What is being typed in the bar. Typing works like "+": it suggests fields (and values);
+  // the last row (or Enter on it) searches for the typed text instead.
+  const [draft, setDraft] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [active, setActive] = useState(0);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [anchor, setAnchor] = useState<HTMLSpanElement | null>(null);
 
   // Users of all user fields of the project, for Reporter and as names for logins.
   const projectUsers = useMemo(() => {
@@ -109,6 +129,52 @@ export function FilterBar({fields, chips, text, disabled, tags, onChipsChange, o
   const used = new Set(chips.map(c => c.field));
   const addItems = options.filter(o => !used.has(o.name)).map(o => toItem(o.name));
 
+  const suggestions = useMemo((): Suggestion[] => {
+    /** Values a field offers, as [query value, label]. */
+    const valuesOf = (o: FieldOption): [string, string][] => {
+      if (o.kind === 'users') {
+        return [
+          ...(o.canBeEmpty ? [['Unassigned', t('filter.unassigned')] as [string, string]] : []),
+          ['me', t('filter.me')],
+          ...projectUsers.map((u): [string, string] => [u.login, u.fullName || u.login])
+        ];
+      }
+      if (o.kind === 'tags') {
+        return tags.map((v): [string, string] => [v, v]);
+      }
+      return (o.values ?? []).map((v): [string, string] => [v, v]);
+    };
+    const usedFields = new Set(chips.map(c => c.field));
+    const typed = draft.trim();
+    const q = typed.toLocaleLowerCase();
+    const fieldRow = (o: FieldOption): Suggestion =>
+      ({kind: 'field', field: o.name, value: o.name, label: o.name, description: t('filter.suggestField')});
+    if (!q) {
+      return options.filter(o => !usedFields.has(o.name)).map(fieldRow);
+    }
+    // "State: op" → only values of State.
+    const colon = /^\{?([^:{}]+)\}?:\s*(.*)$/.exec(typed);
+    const scoped = colon ? options.find(o => o.name.toLocaleLowerCase() === colon[1].trim().toLocaleLowerCase()) : undefined;
+    const valueQuery = scoped && colon ? colon[2].toLocaleLowerCase() : q;
+    const rank = (s: string) => (s.toLocaleLowerCase().startsWith(valueQuery) ? 0 : 1);
+
+    const fieldRows = scoped ? [] : options
+      .filter(o => !usedFields.has(o.name) && o.name.toLocaleLowerCase().includes(q))
+      .sort((a, b) => rank(a.name) - rank(b.name))
+      .map(fieldRow);
+    const valueRows = (scoped ? [scoped] : options.filter(o => o.kind !== 'dates'))
+      .flatMap(o => valuesOf(o)
+        .filter(([value, label]) => !chips.find(c => c.field === o.name)?.values.includes(value) &&
+          (!valueQuery || label.toLocaleLowerCase().includes(valueQuery) || value.toLocaleLowerCase().includes(valueQuery)))
+        .map(([value, label]): Suggestion => ({kind: 'value', field: o.name, value, label, description: o.name})))
+      .sort((a, b) => rank(a.label) - rank(b.label))
+      .slice(0, scoped ? 50 : MAX_VALUE_SUGGESTIONS);
+    const textRow: Suggestion = {kind: 'text', value: typed, label: typed, description: t('filter.suggestText')};
+    return [...fieldRows, ...valueRows, ...(scoped ? [] : [textRow])];
+  }, [draft, options, chips, tags, projectUsers, t]);
+
+  useEffect(() => setActive(0), [draft]);
+
   const addChip = (name: string) => {
     const option = options.find(o => o.name === name);
     if (!option) {
@@ -118,9 +184,70 @@ export function FilterBar({fields, chips, text, disabled, tags, onChipsChange, o
     setJustAdded(option.name);
     setAddKey(k => k + 1);
   };
+  const addValue = (field: string, value: string) => {
+    const option = options.find(o => o.name === field);
+    if (!option) {
+      return;
+    }
+    const existing = chips.find(c => c.field === field);
+    onChipsChange(existing
+      ? chips.map(c => (c.field === field ? {...c, values: [...c.values, value]} : c))
+      : [...chips, {field, kind: option.kind, values: [value]}]);
+  };
   const updateChip = (field: string, values: string[]) =>
     onChipsChange(chips.map(c => (c.field === field ? {...c, values} : c)));
   const removeChip = (field: string) => onChipsChange(chips.filter(c => c.field !== field));
+  const addText = (value: string) => onTextChange([text.trim(), value.trim()].filter(Boolean).join(' '));
+
+  const choose = (s: Suggestion | undefined) => {
+    if (!s) {
+      return;
+    }
+    if (s.kind === 'field' && s.field) {
+      // The new chip's value list takes over, as when the field is picked with "+".
+      inputRef.current?.blur();
+      setFocused(false);
+      addChip(s.field);
+    } else if (s.kind === 'value' && s.field) {
+      addValue(s.field, s.value);
+    } else if (s.value) {
+      addText(s.value);
+    }
+    setDraft('');
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown' && suggestions.length) {
+      e.preventDefault();
+      setFocused(true);
+      setActive(i => (i + 1) % suggestions.length);
+    } else if (e.key === 'ArrowUp' && suggestions.length) {
+      e.preventDefault();
+      setActive(i => (i - 1 + suggestions.length) % suggestions.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (draft.trim()) {
+        choose(suggestions[active]);
+      }
+    } else if (e.key === 'Escape') {
+      setFocused(false);
+    } else if (e.key === 'Backspace' && !draft) {
+      // Like YouTrack: Backspace in an empty bar removes the last condition.
+      if (text) {
+        onTextChange('');
+      } else if (chips.length) {
+        removeChip(chips[chips.length - 1].field);
+      }
+    }
+  };
+
+  const listData = suggestions.map((s, i) => ({
+    key: `${s.kind}:${s.field ?? ''}:${s.value}:${i}`,
+    label: s.label,
+    description: s.description,
+    index: i
+  }));
+  const showSuggestions = focused && !disabled && suggestions.length > 0;
 
   return (
     <div className="filter-bar" role="group" aria-label={t('filter.queryLabel')}>
@@ -140,6 +267,12 @@ export function FilterBar({fields, chips, text, disabled, tags, onChipsChange, o
         />
       ))}
 
+      {text && (
+        <Tag className="filter-chip-value" readOnly={disabled} onRemove={() => onTextChange('')}>
+          {`${t('filter.textTag')}: ${text}`}
+        </Tag>
+      )}
+
       <Select
         key={addKey}
         data={addItems}
@@ -154,26 +287,51 @@ export function FilterBar({fields, chips, text, disabled, tags, onChipsChange, o
               icon={addIcon}
               title={t('filter.addFilter')}
               aria-label={t('filter.addFilter')}
-            >
-              {chips.length ? null : t('filter.addFilter')}
-            </Button>
+              // Icon only: drop the Select placeholder that buttonProps carries as children.
+              children={null}
+            />
             {popup}
           </span>
         )}
       />
 
-      <Input
-        className="filter-text"
-        size={Size.AUTO}
-        borderless
-        icon={searchIcon}
-        value={text}
-        disabled={disabled}
-        placeholder={t('filter.textSearch')}
-        aria-label={t('filter.textSearch')}
-        onChange={e => onTextChange(e.target.value)}
-        onClear={text ? () => onTextChange('') : undefined}
-      />
+      <span className="filter-text" ref={setAnchor}>
+        <Input
+          size={Size.FULL}
+          borderless
+          icon={searchIcon}
+          inputRef={el => {
+            inputRef.current = el;
+          }}
+          value={draft}
+          disabled={disabled}
+          placeholder={t('filter.queryPlaceholder')}
+          aria-label={t('filter.queryPlaceholder')}
+          aria-autocomplete="list"
+          autoComplete="off"
+          onChange={e => {
+            setDraft(e.target.value);
+            setFocused(true);
+          }}
+          onFocus={() => setFocused(true)}
+          // Delayed, so a click on a suggestion (which blurs the input first) still selects it.
+          onBlur={() => setTimeout(() => setFocused(false), 200)}
+          onKeyDown={onKeyDown}
+        />
+        <PopupMenu
+          hidden={!showSuggestions}
+          anchorElement={anchor}
+          data={listData}
+          activeIndex={active}
+          shortcuts={false}
+          autoFocusFirst={false}
+          trapFocus={false}
+          directions={[Directions.BOTTOM_RIGHT, Directions.TOP_RIGHT]}
+          maxHeight={320}
+          onSelect={item => choose(suggestions[(item as {index?: number}).index ?? -1])}
+          onCloseAttempt={() => setFocused(false)}
+        />
+      </span>
     </div>
   );
 }

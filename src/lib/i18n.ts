@@ -181,7 +181,10 @@ const en = {
   'filter.valueSearch': 'Filter items',
   'filter.textSearch': 'Search for text',
   'filter.unassigned': 'Unassigned',
-  'filter.is': 'is'
+  'filter.is': 'is',
+  'filter.suggestField': 'Field',
+  'filter.suggestText': 'Search for text',
+  'filter.textTag': 'Text'
 };
 
 export type MessageKey = keyof typeof en;
@@ -366,7 +369,10 @@ const tr: Record<MessageKey, string> = {
   'filter.valueSearch': 'Değer ara',
   'filter.textSearch': 'Metin ara',
   'filter.unassigned': 'Atanmamış',
-  'filter.is': 'eşittir'
+  'filter.is': 'eşittir',
+  'filter.suggestField': 'Alan',
+  'filter.suggestText': 'Metin ara',
+  'filter.textTag': 'Metin'
 };
 
 export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;
