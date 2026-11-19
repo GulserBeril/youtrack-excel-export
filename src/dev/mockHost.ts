@@ -136,38 +136,43 @@ function assist({query, caret, folders}: AssistBody) {
   const projectId = folders?.[0]?.id ?? '0-1';
   const fields = fieldsFor(projectId);
   const before = query.slice(0, caret);
-  const wordStart = Math.max(before.lastIndexOf(' '), before.lastIndexOf(',')) + 1;
-  const word = before.slice(wordStart).toLowerCase();
-  const fieldBefore = /([A-Za-z ]+):\s*(?:[^:]*,\s*)?[^:,]*$/.exec(before)?.[1]?.trim().split(' ').pop();
+  const wordStart = Math.max(before.lastIndexOf(' '), before.lastIndexOf(','), before.lastIndexOf('{')) + 1;
+  const word = before.slice(wordStart).replace(/^#/, '').toLowerCase();
+  const fieldBefore = /([A-Za-z ]+):s*(?:[^:]*,s*)?[^:,]*$/.exec(before)?.[1]?.trim().split(' ').pop();
   const meta = fields.find(f => f.field.name.toLowerCase() === fieldBefore?.toLowerCase());
 
-  let options: {option: string; description: string; group: string}[];
+  // Same shape as YouTrack: the option itself, plus prefix/suffix to insert around it.
+  type Option = {option: string; prefix?: string; suffix: string; description: string; group: string};
+  const value = (name: string, description: string, group: string): Option =>
+    (name.includes(' ') ? {option: name, prefix: '{', suffix: '} ', description, group} : {option: name, suffix: ' ', description, group});
+  let options: Option[];
   if (meta && 'bundle' in meta && meta.bundle) {
-    options = meta.bundle.values.map(v => ({option: v.name.includes(' ') ? `{${v.name}}` : v.name, description: meta.field.name, group: 'Values'}));
+    options = meta.bundle.values.map(v => value(v.name, meta.field.name, 'Values'));
   } else if (meta?.field.name === 'Assignee') {
     const logins = PROJECT_USERS[projectId] ?? [];
-    options = ['me', ...logins].map(l => ({option: l, description: 'User', group: 'Users'}));
+    options = ['me', ...logins].map(l => value(l, 'User', 'Users'));
   } else {
     options = [
-      ...fields.map(f => ({option: `${f.field.name.includes(' ') ? `{${f.field.name}}` : f.field.name}: `, description: 'Field', group: 'Fields'})),
-      {option: '#Unresolved', description: 'Unresolved issues', group: 'Keywords'},
-      {option: '#Resolved', description: 'Resolved issues', group: 'Keywords'},
-      {option: 'created: ', description: 'Creation date', group: 'Fields'},
-      {option: 'updated: ', description: 'Last update', group: 'Fields'},
-      {option: 'tag: ', description: 'Tag', group: 'Fields'}
+      ...fields.map(f => ({option: f.field.name, ...(f.field.name.includes(' ') ? {prefix: '{', suffix: '}: '} : {suffix: ': '}), description: 'Field', group: 'Fields'})),
+      {option: 'Unresolved', prefix: '#', suffix: ' ', description: 'Unresolved issues', group: 'Keywords'},
+      {option: 'Resolved', prefix: '#', suffix: ' ', description: 'Resolved issues', group: 'Keywords'},
+      {option: 'created', suffix: ': ', description: 'Creation date', group: 'Fields'},
+      {option: 'updated', suffix: ': ', description: 'Last update', group: 'Fields'}
     ];
   }
   const matching = options.filter(o => o.option.toLowerCase().startsWith(word)).slice(0, 12);
+  // A leading "#" or "{" typed by the user is part of the text that the suggestion replaces.
+  const start = before[wordStart - 1] === '{' ? wordStart - 1 : (before[wordStart] === '#' ? wordStart : wordStart);
   return {
     query,
     caret,
     suggestions: matching.map(o => ({
       ...o,
-      completionStart: wordStart,
+      completionStart: start,
       completionEnd: caret,
       matchingStart: 0,
       matchingEnd: word.length,
-      caret: wordStart + o.option.length
+      caret: start + (o.prefix ?? '').length + o.option.length + o.suffix.length
     }))
   };
 }

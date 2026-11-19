@@ -174,7 +174,8 @@ const en = {
   'columns.titleCount': 'Columns ({count})',
   'c.downloadXlsx': 'Download Excel',
   'c.downloadCsv': 'Download CSV',
-  'filter.queryPlaceholder': 'Search for text or add a filter'
+  'filter.queryPlaceholder': 'Search for text or add a filter',
+  'filter.queryPending': 'Press Enter (or the search icon) to apply the query.'
 };
 
 export type MessageKey = keyof typeof en;
@@ -352,7 +353,8 @@ const tr: Record<MessageKey, string> = {
   'columns.titleCount': 'Kolonlar ({count})',
   'c.downloadXlsx': 'Excel indir',
   'c.downloadCsv': 'CSV indir',
-  'filter.queryPlaceholder': 'Metin arayın veya filtre ekleyin'
+  'filter.queryPlaceholder': 'Metin arayın veya filtre ekleyin',
+  'filter.queryPending': 'Sorguyu uygulamak için Enter tuşuna (veya arama simgesine) basın.'
 };
 
 export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;

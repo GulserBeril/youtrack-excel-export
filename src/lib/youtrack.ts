@@ -30,6 +30,10 @@ interface ProjectCustomField {
 
 export interface SearchAssistSuggestion {
   option: string;
+  /** Text YouTrack inserts before the option (e.g. "#"). */
+  prefix?: string;
+  /** Text YouTrack inserts after the option (e.g. ": " after a field name, " " after a value). */
+  suffix?: string;
   description: string;
   group: string;
   caret: number;
@@ -131,12 +135,14 @@ export function createYouTrackApi(host: HostAPI) {
     /**
      * Completion for the query box, from YouTrack's own search assist (the same suggestions as the
      * search bar in the issue list). Scoped to the selected project through `folders`.
-     * Only the documented fields are requested.
+     * Requests the Suggestion fields YouTrack's own search box needs to insert a suggestion correctly:
+     * prefix and suffix (e.g. option "State" + suffix ": "). Without them a picked suggestion is
+     * inserted incomplete. Icons are left out: their URIs are relative to YouTrack and break in the iframe.
      */
     searchAssist: (query: string, caret: number, projectId?: string): Promise<SearchAssistResponse> =>
       host.fetchYouTrack<SearchAssistResponse>('search/assist', {
         method: 'POST',
-        query: {fields: 'query,caret,suggestions(option,description,group,caret,completionStart,completionEnd,matchingStart,matchingEnd)'},
+        query: {fields: 'query,caret,suggestions(option,prefix,suffix,description,group,caret,completionStart,completionEnd,matchingStart,matchingEnd)'},
         body: {query, caret, folders: projectId ? [{id: projectId, $type: 'Project'}] : []}
       }),
 

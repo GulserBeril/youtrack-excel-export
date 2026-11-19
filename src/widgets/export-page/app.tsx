@@ -114,7 +114,10 @@ const AppComponent: React.FunctionComponent = () => {
   // Filtering is YouTrack's own search: the selected project plus a query typed in the same
   // query box (Ring UI QueryAssist + YouTrack search assist) as the issue list.
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  // customQuery is the applied query; draftQuery is what is being typed. Like YouTrack's issue list,
+  // the query is applied on Enter, the search button or clear, not on every keystroke.
   const [customQuery, setCustomQuery] = useState('');
+  const [draftQuery, setDraftQuery] = useState('');
   const [columnKeys, setColumnKeys] = useState<string[]>([]);
 
   const [count, setCount] = useState<number | null>(null);
@@ -152,6 +155,7 @@ const AppComponent: React.FunctionComponent = () => {
     previousProject.current = selectedProject;
     setFilters({...EMPTY_FILTERS, projects: selectedProject ? [selectedProject] : []});
     setCustomQuery('');
+    setDraftQuery('');
     setColumnKeys([]);
   }, [selectedProject]);
 
@@ -266,6 +270,7 @@ const AppComponent: React.FunctionComponent = () => {
   const reset = useCallback(() => {
     setFilters({...EMPTY_FILTERS, fieldFilters: defaultFieldFilters(fields)});
     setCustomQuery('');
+    setDraftQuery('');
     const known = new Set(columns.map(c => c.key));
     setColumnKeys(DEFAULT_COLUMN_KEYS.filter(k => known.has(k)));
     setError(null);
@@ -349,20 +354,30 @@ const AppComponent: React.FunctionComponent = () => {
                 <QueryAssist
                   key={selectedProject ?? 'none'}
                   size={Size.FULL}
-                  query={customQuery}
+                  query={draftQuery}
                   dataSource={assist}
                   placeholder={t('filter.queryPlaceholder')}
                   disabled={!selectedProject}
                   glass
                   clear
+                  autoOpen
                   delay={150}
-                  onChange={({query: q}) => setCustomQuery(q)}
-                  onApply={({query: q}) => setCustomQuery(q)}
-                  onClear={() => setCustomQuery('')}
+                  onChange={({query: q}) => setDraftQuery(q)}
+                  onApply={({query: q}) => {
+                    setDraftQuery(q);
+                    setCustomQuery(q);
+                  }}
+                  onClear={() => {
+                    setDraftQuery('');
+                    setCustomQuery('');
+    setDraftQuery('');
+                  }}
                 />
               </div>
             </div>
-            <Text info>{selectedProject ? t('filter.queryHintProject') : t('filter.chooseProjectFirst')}</Text>
+            {selectedProject && draftQuery.trim() !== customQuery.trim()
+              ? <Text className="warning">{t('filter.queryPending')}</Text>
+              : <Text info>{selectedProject ? t('filter.queryHintProject') : t('filter.chooseProjectFirst')}</Text>}
           </section>
 
           {error && <Banner mode="error" withIcon>{error}</Banner>}
