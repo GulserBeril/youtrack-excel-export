@@ -495,14 +495,62 @@ body {
 /* Filter bar shaped like YouTrack's issue-list search: chips + "+" + free text in one box. */
 .filter-bar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: calc(var(--ring-unit) / 2);
+  align-items: stretch;
   min-height: calc(var(--ring-unit) * 4);
-  padding: calc(var(--ring-unit) / 2);
   border: 1px solid var(--ring-borders-color);
   border-radius: var(--ring-border-radius);
   background-color: var(--ring-content-background-color);
+}
+
+.filter-bar--disabled {
+  opacity: 0.6;
+}
+
+/* "+", chips and text box; wraps onto more lines when there are many chips. */
+.filter-bar-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--ring-unit) / 2);
+  min-width: 0;
+  padding: calc(var(--ring-unit) / 2);
+}
+
+/* Clear and search at the right end, the search button set off by a divider (as in YouTrack). */
+.filter-bar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+}
+
+.filter-bar-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--ring-unit) * 3.5);
+}
+
+.filter-bar-search {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--ring-unit) * 4.5);
+  height: auto;
+  border-left: 1px solid var(--ring-borders-color);
+  border-radius: 0 var(--ring-border-radius) var(--ring-border-radius) 0;
+}
+
+/* The "+" as a small tinted square, like YouTrack's add-filter button. */
+.filter-add button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--ring-unit) * 3);
+  height: calc(var(--ring-unit) * 3);
+  border-radius: var(--ring-border-radius);
+  background-color: var(--ring-selected-background-color);
+  color: var(--ring-main-color);
 }
 
 .filter-bar:focus-within {

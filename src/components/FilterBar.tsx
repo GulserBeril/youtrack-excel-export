@@ -250,7 +250,9 @@ export function FilterBar({fields, chips, text, disabled, tags, onChipsChange, o
   const showSuggestions = focused && !disabled && suggestions.length > 0;
 
   return (
-    <div className="filter-bar" role="group" aria-label={t('filter.queryLabel')}>
+    <div className={disabled ? 'filter-bar filter-bar--disabled' : 'filter-bar'} role="search" aria-label={t('filter.queryLabel')}>
+      {/* Left: "+", the chips and the text box, wrapping like YouTrack's search bar. */}
+      <div className="filter-bar-main">
       {chips.map(chip => (
         <ChipEditor
           key={chip.field}
@@ -299,7 +301,6 @@ export function FilterBar({fields, chips, text, disabled, tags, onChipsChange, o
         <Input
           size={Size.FULL}
           borderless
-          icon={searchIcon}
           inputRef={el => {
             inputRef.current = el;
           }}
@@ -332,6 +333,40 @@ export function FilterBar({fields, chips, text, disabled, tags, onChipsChange, o
           onCloseAttempt={() => setFocused(false)}
         />
       </span>
+      </div>
+
+      {/* Right: clear and search, like the buttons at the end of YouTrack's search bar. */}
+      <div className="filter-bar-actions">
+        {(chips.length > 0 || text || draft) && (
+          <Button
+            icon={closeIcon}
+            className="filter-bar-clear"
+            title={t('filter.clearAll')}
+            aria-label={t('filter.clearAll')}
+            disabled={disabled}
+            onClick={() => {
+              setDraft('');
+              onTextChange('');
+              onChipsChange([]);
+            }}
+          />
+        )}
+        <Button
+          icon={searchIcon}
+          className="filter-bar-search"
+          title={t('filter.searchButton')}
+          aria-label={t('filter.searchButton')}
+          disabled={disabled}
+          onClick={() => {
+            // Like Enter on the text row: the typed text becomes a text search.
+            if (draft.trim()) {
+              addText(draft);
+              setDraft('');
+            }
+            setFocused(false);
+          }}
+        />
+      </div>
     </div>
   );
 }

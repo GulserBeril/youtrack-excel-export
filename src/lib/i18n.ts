@@ -184,7 +184,8 @@ const en = {
   'filter.is': 'is',
   'filter.suggestField': 'Field',
   'filter.suggestText': 'Search for text',
-  'filter.textTag': 'Text'
+  'filter.textTag': 'Text',
+  'filter.searchButton': 'Search'
 };
 
 export type MessageKey = keyof typeof en;
@@ -372,7 +373,8 @@ const tr: Record<MessageKey, string> = {
   'filter.is': 'eşittir',
   'filter.suggestField': 'Alan',
   'filter.suggestText': 'Metin ara',
-  'filter.textTag': 'Metin'
+  'filter.textTag': 'Metin',
+  'filter.searchButton': 'Ara'
 };
 
 export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;
