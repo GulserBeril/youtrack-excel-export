@@ -111,3 +111,7 @@ Elle yükleme / Marketplace için paket: `npm run pack` → `youtrack-issue-expo
 - Export profilleri (filtre + kolon + format) — `backend.js` + extension properties ile kalıcı saklama
 - Özet (pivot) ve work item sayfaları
 - Marketplace: ekran görüntüleri, privacy policy, EULA
+
+## Lisans
+
+Apache License 2.0 — bkz. [LICENSE](LICENSE). Telif hakkı ve üçüncü taraf bileşenler: [NOTICE](NOTICE).

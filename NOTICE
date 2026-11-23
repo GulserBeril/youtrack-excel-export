@@ -1,0 +1,23 @@
+Issue Export (YouTrack app)
+Copyright 2026 Codeo (https://www.codeo.com.tr/)
+
+This product is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full license text.
+
+This product bundles third-party software:
+
+- Ring UI (@jetbrains/ring-ui-built)
+  Copyright 2000-2016 JetBrains s.r.o.
+  Licensed under the Apache License, Version 2.0.
+
+- JetBrains Icons (@jetbrains/icons)
+  Copyright 2010-2017 JetBrains s.r.o.
+  Licensed under the Apache License, Version 2.0.
+
+- React and React DOM (react, react-dom)
+  Copyright (c) Facebook, Inc. and its affiliates.
+  Licensed under the MIT License.
+
+- ExcelJS (exceljs)
+  Copyright (c) 2014-2019 Guyon Roche
+  Licensed under the MIT License.
