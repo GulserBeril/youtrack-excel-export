@@ -21,8 +21,8 @@
  */
 
 const PROJECTS = [
-  {id: '0-1', shortName: 'WEB', name: 'Web Sitesi'},
-  {id: '0-2', shortName: 'MOB', name: 'Mobil Uygulama'},
+  {id: '0-1', shortName: 'WEB', name: 'Website'},
+  {id: '0-2', shortName: 'MOB', name: 'Mobile App'},
   {id: '0-3', shortName: 'API', name: 'Backend API'}
 ];
 const STATES = ['Open', 'In Progress', 'To Verify', 'Fixed', 'Done'];
@@ -38,10 +38,10 @@ const STATE_COLORS: Record<string, {background: string; foreground: string}> = {
 const PRIORITY_COLORS = ['#e30000', '#e85c00', '#e0a800', '#3d8bfd', '#8f9bb3'];
 const TYPES = ['Bug', 'Feature', 'Task'];
 const USERS = [
-  {login: 'ayse', fullName: 'Ayşe Yılmaz'},
-  {login: 'mehmet', fullName: 'Mehmet Demir'},
-  {login: 'zeynep', fullName: 'Zeynep Kaya'},
-  {login: 'can', fullName: 'Can Öztürk'}
+  {login: 'alice', fullName: 'Alice Walker'},
+  {login: 'bob', fullName: 'Bob Miller'},
+  {login: 'carol', fullName: 'Carol Smith'},
+  {login: 'dave', fullName: 'Dave Brown'}
 ];
 const TAGS = ['needs review', 'regression', 'customer'];
 
@@ -54,8 +54,8 @@ const ISSUES = Array.from({length: 137}, (_, i) => {
   const created = now - (i * 2 + 3) * DAY;
   return {
     idReadable: `${project.shortName}-${100 + i}`,
-    summary: `${['Giriş', 'Ödeme', 'Bildirim', 'Profil', 'Arama'][i % 5]} ekranında ${['hata', 'iyileştirme', 'yeni alan'][i % 3]} #${i + 1}`,
-    description: 'Örnek açıklama metni.',
+    summary: `${['Bug', 'Improvement', 'New field'][i % 3]} on the ${['login', 'payment', 'notification', 'profile', 'search'][i % 5]} screen #${i + 1}`,
+    description: 'Sample description.',
     created,
     updated: created + DAY,
     resolved: state === 'Done' || state === 'Fixed' ? created + 2 * DAY : null,
@@ -119,7 +119,7 @@ function matches(issue: (typeof ISSUES)[number], query: string): boolean {
       actual = v ? [v.name ?? v.login ?? ''] : ['Unassigned'];
     }
     // "me" is the first sample user in the mock.
-    if (!wanted.some(w => actual.includes(w) || (w === 'me' && actual.includes('ayse')))) {
+    if (!wanted.some(w => actual.includes(w) || (w === 'me' && actual.includes('alice')))) {
       return false;
     }
   }
@@ -137,9 +137,9 @@ const PROJECT_FIELDS: Record<string, string[]> = {
   '0-3': ['State', 'Type', 'Assignee', 'Component', 'Due Date']
 };
 const PROJECT_USERS: Record<string, string[]> = {
-  '0-1': ['ayse', 'mehmet', 'zeynep', 'can'],
-  '0-2': ['ayse', 'zeynep'],
-  '0-3': ['mehmet', 'can']
+  '0-1': ['alice', 'bob', 'carol', 'dave'],
+  '0-2': ['alice', 'carol'],
+  '0-3': ['bob', 'dave']
 };
 
 function fieldsFor(projectId: string) {
@@ -248,8 +248,8 @@ async function fetchYouTrack(url: string, params: Params = {}): Promise<unknown>
   }
   if (url === 'savedQueries') {
     return delay([
-      {id: 's1', name: 'Açık hatalarım', query: 'Type: Bug #Unresolved Assignee: me'},
-      {id: 's2', name: 'Web — bu sprint', query: 'project: WEB State: {In Progress}'}
+      {id: 's1', name: 'My open bugs', query: 'Type: Bug #Unresolved Assignee: me'},
+      {id: 's2', name: 'Web — this sprint', query: 'project: WEB State: {In Progress}'}
     ]);
   }
   if (url === 'search/assist') {

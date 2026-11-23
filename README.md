@@ -1,117 +1,112 @@
 # YouTrack Issue Export
 
-YouTrack issue'larını görsel filtrelerle süzüp **Excel (.xlsx) veya CSV** olarak dışa aktaran YouTrack App.
-YouTrack ana menüsünde **Issue Export** adlı ayrı bir sayfa olarak görünür (`MAIN_MENU_ITEM`). Geliştirici: Codeo.
+A YouTrack app that filters issues and exports them to **Excel (.xlsx)** or **CSV**.
+It adds a separate **Issue Export** page to the YouTrack main menu (`MAIN_MENU_ITEM`). Developed by [Codeo](https://www.codeo.com.tr/).
 
-> Manifest'teki teknik kimlik (`"name": "excel-export"`) bilerek değiştirilmedi: YouTrack yeni sürümleri bu kimlikle
-> tanıyıp mevcut kurulumun üzerine günceller. Değiştirilirse ayrı bir uygulama olarak kurulur.
+> The technical ID in the manifest (`"name": "excel-export"`) is intentionally unchanged: YouTrack uses it to recognize
+> new versions and update the existing installation. Changing it would install a separate app.
 
-## Özellikler (v0.9, tasarım B)
+## Features
 
-Arayüz, YouTrack kullanıcısının diline göre Türkçe veya İngilizce açılır.
-Geliştirme kuralları (tema, Ring UI, manifest) için üst klasördeki `CLAUDE.md` dosyasına bakın:
+The page follows the language of the YouTrack user (English or Turkish).
 
-- **Tema:** Sayfa YouTrack'te seçili temayı izler (işletim sistemi temasını değil). Tema kararını app vermez;
-  YouTrack'in iframe'e sağladığı Ring UI değişkenleri kullanılır.
-- **Yerel görünüm:** Tüm kontroller Ring UI bileşenleridir (Button, ButtonGroup, Select, Input, Checkbox, Tag, Tabs,
-  Banner, Island, Heading, ProgressBar); renkler yalnızca `--ring-*` değişkenlerinden gelir, ikonlar `@jetbrains/icons`.
-  Önizlemedeki State etiketleri ve renk noktaları YouTrack'in o alan değeri için verdiği renklerdir (issue verisinden).
+- **Theme:** the page follows the theme selected in YouTrack, not the operating system theme. The app makes no theme
+  decision of its own; it uses the Ring UI variables YouTrack provides to the iframe.
+- **Native look:** every control is a Ring UI component and every color comes from the `--ring-*` variables; icons come
+  from `@jetbrains/icons`. State tags and color dots in the preview use the colors YouTrack returns for those values.
 
-Sayfa adım adım açılır: önce yalnızca proje seçilir. Proje seçilince filtreler o projenin alanlarıyla
-(Assignee listesi o projede atanabilen kişilerle) gelir. Kolonlar, Önizleme ve Dışa aktarım özeti kartları
-baştan alt alta görünür ama proje seçilene kadar pasiftir (soluk, `inert`: tıklanamaz, klavyeyle odaklanılamaz). Proje değişince proje dışındaki tüm filtreler (durum, hızlı filtreler, alan filtreleri, tarihler,
-etiketler, metin, sorgu kutusu) ve kolon seçimi sıfırlanır; kolonlar yeni projenin varsayılanlarına döner.
+The page is used step by step:
 
-Sayfa dört bölümden oluşur:
+1. **Issue filters**
+   - Choose exactly one project (required). Everything else is limited to that project.
+   - Filter with a search bar that works like the one in the YouTrack issue list:
+     - **+** opens the project's fields. A picked field becomes a "Field is" chip and its value list opens
+       (multi-select with search; user fields offer Unassigned and Me).
+     - **Typing** suggests matching fields and values (e.g. `fix` → State: Fixed); `State: ` limits suggestions to that
+       field. The last row searches for the typed text.
+     - Several values of one field mean any of them; different fields are combined.
+     - Keyboard: ↑/↓, Enter, Esc; Backspace in an empty bar removes the last condition. The search button on the right
+       applies the typed text, × clears everything.
+   - Changing the project resets the filters and the column selection.
+2. **Columns:** the selected columns in file order (drag, or Alt+↑/↓ on a focused row; × removes), a search box and an
+   "Add columns" menu.
+3. **Preview:** the first 5 matching issues with the selected columns.
+4. **Export Summary:** issue and column count, file format (CSV also has a separator choice), Download and Reset.
 
-1. **Issue filtreleri**: zorunlu tek proje seçimi + YouTrack'ın kendi arama kutusu (Ring UI `QueryAssist`).
-   Öneriler YouTrack'ın `search/assist` servisinden, seçili projeye göre gelir; sözdizimi issue listesindekiyle aynıdır.
-   Sorgu her zaman seçili projeyle sınırlanır (proje sorguya otomatik eklenir).
-2. **Kolonlar**: üstte arama; solda Standart / Özel / Tüm alanlar sekmeleriyle onay kutuları; sağda numaralı ve
-   sürüklenebilir seçili kolonlar (klavye: satıra odaklanıp Alt+↑/↓), "Sırayı sıfırla"
-3. **Önizleme**: seçili kolonlarla ilk 5 satır
-4. **Alt çubuk**: issue ve kolon sayısı, dosya formatı menüsü (CSV'de ayraç menüsü), Sıfırla ve dışa aktar butonu
+The columns, preview and export steps stay inactive (`inert`) until a project is chosen.
 
-Önceki tasarım (A) git'te `v0.8.5-design-a` etiketiyle saklıdır.
+### File formats
 
-### Dosya formatları
-
-| Format | İçerik |
+| Format | Content |
 |---|---|
-| Excel (.xlsx) | Kalın ve sabit başlık satırı, otomatik filtre, gerçek tarih hücreleri, "Dışa aktarım bilgisi" sayfası |
-| CSV | UTF-8 (BOM'lu, Excel Türkçe karakterleri doğru gösterir). Ayraç seçilebilir: Türkçe'de varsayılan `;`, İngilizce'de `,`. `=`, `+`, `-`, `@` ile başlayan değerlerin önüne `'` eklenir (CSV injection koruması) |
+| Excel (.xlsx) | Bold, frozen header row, auto filter, real date cells, and an export info sheet |
+| CSV | UTF-8 with BOM (so Excel shows non-ASCII characters correctly). Separator `;` (default for Turkish) or `,` (default for English). Values starting with `=`, `+`, `-` or `@` are prefixed with `'` (CSV injection protection) |
 
-Son seçilen format ve ayraç tarayıcıda hatırlanır. Dosya adı `Proje Adı YYYY-AA-GG.<uzantı>` biçimindedir.
-Dosyalar tamamen tarayıcıda üretilir, veri YouTrack dışına çıkmaz.
+The last chosen format and separator are remembered in the browser. Files are named `Project Name YYYY-MM-DD.<ext>`.
+Files are generated entirely in the browser; no data leaves YouTrack.
 
-## Yerel önizleme (YouTrack'e yüklemeden)
+## Local preview (without uploading to YouTrack)
 
 ```bash
 npm run dev
 ```
 
-Tarayıcıda `http://localhost:5173/dev/preview.html` adresini açın (İngilizce için `?lang=en`, YouTrack koyu temasını taklit etmek için `?theme=dark`).
-Sahte YouTrack verisi `src/dev/mockHost.ts` dosyasında. Bu dosyalar build'e ve zip'e girmez.
+Open `http://localhost:5173/dev/preview.html` (`?lang=en` for English, `?theme=dark` to imitate the YouTrack dark theme).
+The fake YouTrack data lives in `src/dev/mockHost.ts`; these files are not part of the build or the zip.
 
-Yüklemeden önce görünümü **production build** ile kontrol edin (dev sunucusu CSS sırasını farklı uygular):
+Check the look on a **production build** before uploading (the dev server orders CSS differently):
 
 ```bash
 npm run preview:prod
 ```
 
-`http://localhost:5174/dev/preview.html` — koyu tema için `?theme=dark&themeOn=body`.
+Then open `http://localhost:5174/dev/preview.html` (dark theme: `?theme=dark&themeOn=body`).
 
-## Proje yapısı
+## Project structure
 
 ```
-manifest.json                  App tanımı (widget, extension point, izinler)
-src/widgets/export-page/       Sayfa (app.tsx), giriş noktası, CSS, ikon
-src/components/                FilterPanel, FieldFilterControl, DateRangeFilter, ColumnPicker, PreviewTable, Segmented
-src/lib/query.ts               Filtre modeli → YouTrack sorgu dili
-src/lib/youtrack.ts            REST API çağrıları (sayfalama, sayım, metadata)
-src/lib/columns.ts             Kolon tanımları ve değer dönüşümü
-src/lib/exporters.ts           CSV üretimi, indirme, format seçimi
-src/lib/excel.ts               ExcelJS ile .xlsx üretimi (yalnızca Excel seçilince yüklenir)
-src/lib/fileName.ts            Proje adına göre dosya adı
-src/lib/i18n.ts                Türkçe / İngilizce metinler
-src/dev/                       Yerel önizleme (sahte YouTrack)
-@types/globals.d.ts            YTApp host API tipleri (resmi şablondan)
+manifest.json                  App definition (widget, extension point, permissions)
+src/widgets/export-page/       The page (app.tsx), entry point, CSS, menu icon
+src/components/FilterBar.tsx   YouTrack-style filter bar (chips, typing suggestions)
+src/components/ColumnList.tsx  Column selection and order
+src/components/PreviewTable.tsx
+src/components/Segmented.tsx   Format / separator switch
+src/lib/query.ts               Filters → YouTrack query language
+src/lib/youtrack.ts            REST API calls (paging, count, project fields)
+src/lib/columns.ts             Column definitions and value conversion
+src/lib/exporters.ts           CSV generation, download, format choice
+src/lib/excel.ts               .xlsx generation with ExcelJS (loaded only when exporting to Excel)
+src/lib/fileName.ts            File name from the project name
+src/lib/i18n.ts                English / Turkish texts
+src/dev/                       Local preview (fake YouTrack host)
+@types/globals.d.ts            YTApp host API types (from the official template)
 ```
 
-## Geliştirme
+## Development
 
 ```bash
 npm install
-npm run build        # tip kontrolü + vite build + manifest doğrulaması → dist/
+npm run build        # type check + vite build + manifest validation → dist/
 ```
 
-## YouTrack'e yükleme
+## Uploading to YouTrack
 
-1. YouTrack'te **Profile → Account Security → New token** ile *YouTrack* scope'lu bir token oluşturun.
-2. `.env.example` dosyasını `.env` olarak kopyalayıp `YOUTRACK_HOST` ve `YOUTRACK_TOKEN` değerlerini doldurun, sonra:
+1. In YouTrack, create a token with the *YouTrack* scope: **Profile → Account Security → New token**.
+2. Copy `.env.example` to `.env`, fill in `YOUTRACK_HOST` and `YOUTRACK_TOKEN`, then run:
    ```bash
    npm run deploy      # build + upload
    ```
-3. **Administration → Apps → Issue Export** ekranında uygulamayı etkinleştirin (Active).
-4. Ana menüde **Issue Export** sayfası görünür.
+3. Enable the app under **Administration → Apps → Issue Export** (Active).
+4. The **Issue Export** page appears in the main menu.
 
-Elle yükleme / Marketplace için paket: `npm run pack` → `youtrack-issue-export.zip`
-(build alır, `dist` içeriğini zip'in köküne koyar). YouTrack'te **Administration → Apps → Add app → Upload ZIP file** ile yüklenir.
+Package for manual upload or the Marketplace: `npm run pack` → `youtrack-issue-export.zip`
+(builds and puts the contents of `dist` at the root of the zip). Upload it in YouTrack under
+**Administration → Apps → Add app → Upload ZIP file**.
 
-## Gerçek YouTrack'te kontrol edilecekler
+## Release history
 
-- [ ] CSV indirmesinin iframe içinde de çalıştığı (Excel indirmesi çalışıyor)
-- [ ] `issuesGetter/count` ve açık uçlu tarih aralığının (`created: 2026-01-01 .. *`) sürümünüzde çalıştığı
-- [ ] `admin/projects/{id}/customFields` çağrısının admin olmayan kullanıcılarda da çalıştığı
-- [ ] YouTrack temasını izleme: YouTrack koyu, işletim sistemi açık (ve tersi) iken sayfanın YouTrack ile aynı olduğu
-- [ ] Çok sayıda proje varken alan metadatası yalnızca ilk 30 projeden yüklenir (`MAX_PROJECTS_FOR_FIELDS`)
+Earlier designs are kept as git tags: `v0.8.5-design-a`, `v0.9.0-design-b`, `v0.9.7-design-b2`, `v0.10.x`/`v0.11.0-design-c`.
 
-## Sonraki adımlar
+## License
 
-- Export profilleri (filtre + kolon + format) — `backend.js` + extension properties ile kalıcı saklama
-- Özet (pivot) ve work item sayfaları
-- Marketplace: ekran görüntüleri, privacy policy, EULA
-
-## Lisans
-
-Apache License 2.0 — bkz. [LICENSE](LICENSE). Telif hakkı ve üçüncü taraf bileşenler: [NOTICE](NOTICE).
+Apache License 2.0, see [LICENSE](LICENSE). Copyright and third-party components: [NOTICE](NOTICE).

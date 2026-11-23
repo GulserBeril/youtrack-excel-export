@@ -29,7 +29,7 @@ const MIME: Record<ExportFormat, string> = {
   csv: 'text/csv;charset=utf-8'
 };
 
-/** Excel needs this byte order mark to read UTF-8 (ş, ğ, ı, ...) correctly. */
+/** Excel needs this byte order mark to read UTF-8 (non-ASCII letters such as ş, ğ, ı) correctly. */
 const UTF8_BOM = '﻿';
 
 /** Turkish Excel expects ";" between CSV fields (comma is the decimal separator there). */
