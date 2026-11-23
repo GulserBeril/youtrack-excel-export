@@ -10,6 +10,8 @@ It adds a separate **Issue Export** page to the YouTrack main menu (`MAIN_MENU_I
 
 The page follows the language of the YouTrack user (English or Turkish).
 
+It works for every user who can read issues: administrators get the project fields from the project settings, other users (for example the Contributor role) from the project's issues. Users only ever see and export issues they are allowed to read.
+
 - **Theme:** the page follows the theme selected in YouTrack, not the operating system theme. The app makes no theme
   decision of its own; it uses the Ring UI variables YouTrack provides to the iframe.
 - **Native look:** every control is a Ring UI component and every color comes from the `--ring-*` variables; icons come
@@ -52,7 +54,7 @@ npm run dev
 ```
 
 Open `http://localhost:5173/dev/preview.html` (`?lang=en` for English, `?theme=dark` to imitate the YouTrack dark theme).
-The fake YouTrack data lives in `src/dev/mockHost.ts`; these files are not part of the build or the zip.
+Add `&role=contributor` to try it as a regular (non-admin) project member. The fake YouTrack data lives in `src/dev/mockHost.ts`; these files are not part of the build or the zip.
 
 Check the look on a **production build** before uploading (the dev server orders CSS differently):
 

@@ -15,6 +15,7 @@
  */
 
 import type {HostAPI} from '../../@types/globals';
+import {quote} from './query';
 import type {FieldMeta, Project, RawIssue, SavedQuery, UserRef} from './types';
 
 /**
@@ -41,8 +42,23 @@ const PAGE_SIZE = 100;
 interface ProjectCustomField {
   id: string;
   field: {name: string; fieldType?: {valueType?: string; isMultiValue?: boolean}};
-  bundle?: {values?: {name: string; archived?: boolean}[]};
+  bundle?: {values?: {name: string; archived?: boolean}[]; aggregatedUsers?: UserRef[]};
 }
+
+/** An issue with only the definitions of its project's custom fields (see fieldsFromIssues). */
+interface IssueFieldDefinitions {
+  customFields?: {projectCustomField?: ProjectCustomField | null}[];
+}
+
+/** How many issues are read to collect the project's field definitions when the admin API is not available. */
+const FIELD_SAMPLE_ISSUES = 10;
+
+const toFieldMeta = (pcf: ProjectCustomField): FieldMeta => ({
+  name: pcf.field.name,
+  valueType: pcf.field.fieldType?.valueType ?? 'string',
+  multiValue: Boolean(pcf.field.fieldType?.isMultiValue),
+  values: (pcf.bundle?.values ?? []).filter(v => !v.archived).map(v => v.name)
+});
 
 export interface SearchAssistSuggestion {
   option: string;
@@ -73,6 +89,42 @@ export function createYouTrackApi(host: HostAPI) {
   const get = <T>(url: string, query?: Record<string, string | number>) =>
     host.fetchYouTrack<T>(url, query ? {query} : undefined);
 
+  /**
+   * Field definitions of a project for users who cannot use the admin API: every issue lists all custom
+   * fields of its project (empty ones too) together with the project field settings and value bundles.
+   * A few issues are read and merged so that values from all of them are included.
+   * A project without issues yields no custom fields (there is nothing to export then anyway).
+   */
+  const fieldsFromIssues = async (project: Project): Promise<FieldMeta[]> => {
+    const issues = await get<IssueFieldDefinitions[]>('issues', {
+      query: `project: ${quote(project.shortName)}`,
+      fields: 'customFields(projectCustomField(id,field(name,fieldType(valueType,isMultiValue)),' +
+        'bundle(values(name,archived),aggregatedUsers(login,fullName))))',
+      $top: FIELD_SAMPLE_ISSUES
+    });
+    const byName = new Map<string, FieldMeta>();
+    for (const issue of issues) {
+      for (const cf of issue.customFields ?? []) {
+        const pcf = cf.projectCustomField;
+        if (!pcf?.field?.name) {
+          continue;
+        }
+        const meta = toFieldMeta(pcf);
+        const users = pcf.bundle?.aggregatedUsers;
+        const known = byName.get(meta.name);
+        if (!known) {
+          byName.set(meta.name, {...meta, users: users?.length ? users : undefined});
+          continue;
+        }
+        known.values = [...new Set([...known.values, ...meta.values])];
+        if (!known.users?.length && users?.length) {
+          known.users = users;
+        }
+      }
+    }
+    return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+  };
+
   return {
     getProjects: async (): Promise<Project[]> => {
       const projects = await get<Project[]>('admin/projects', {
@@ -88,19 +140,24 @@ export function createYouTrackApi(host: HostAPI) {
      * For user fields (e.g. Assignee) the users who can be set in this project are loaded too.
      */
     getFieldsForProject: async (project: Project): Promise<FieldMeta[]> => {
-      const list = await get<ProjectCustomField[]>(`admin/projects/${project.id}/customFields`, {
-        fields: 'id,field(name,fieldType(valueType,isMultiValue)),bundle(values(name,archived))',
-        $top: -1
-      });
+      // Project administrators can read the project's field settings directly. For everybody else
+      // (e.g. the Contributor role) this call fails or returns an empty list, so the field definitions
+      // are then read from the project's issues, which every user who can see the issues may read.
+      let list: ProjectCustomField[] = [];
+      try {
+        list = await get<ProjectCustomField[]>(`admin/projects/${project.id}/customFields`, {
+          fields: 'id,field(name,fieldType(valueType,isMultiValue)),bundle(values(name,archived))',
+          $top: -1
+        });
+      } catch {
+        list = [];
+      }
+      if (!list.length) {
+        return fieldsFromIssues(project);
+      }
       const fields = await Promise.all(list.map(async (pcf): Promise<FieldMeta> => {
-        const valueType = pcf.field.fieldType?.valueType ?? 'string';
-        const meta: FieldMeta = {
-          name: pcf.field.name,
-          valueType,
-          multiValue: Boolean(pcf.field.fieldType?.isMultiValue),
-          values: (pcf.bundle?.values ?? []).filter(v => !v.archived).map(v => v.name)
-        };
-        if (valueType === 'user') {
+        const meta = toFieldMeta(pcf);
+        if (meta.valueType === 'user') {
           try {
             const detail = await get<UserBundleField>(`admin/projects/${project.id}/customFields/${pcf.id}`, {
               fields: 'bundle(aggregatedUsers(login,fullName))'

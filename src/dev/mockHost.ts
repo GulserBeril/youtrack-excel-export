@@ -20,6 +20,9 @@
  * Open http://localhost:5173/dev/preview.html (add ?lang=en for English, ?theme=dark for the dark theme).
  */
 
+// ?role=contributor imitates a regular project member: the admin API returns no project fields.
+const CONTRIBUTOR = new URLSearchParams(location.search).get('role') === 'contributor';
+
 const PROJECTS = [
   {id: '0-1', shortName: 'WEB', name: 'Website'},
   {id: '0-2', shortName: 'MOB', name: 'Mobile App'},
@@ -251,11 +254,15 @@ async function fetchYouTrack(url: string, params: Params = {}): Promise<unknown>
   }
   const fieldList = /^admin\/projects\/([^/]+)\/customFields$/.exec(url);
   if (fieldList) {
-    return delay(fieldsFor(fieldList[1]));
+    // A regular user (e.g. the Contributor role) gets an empty list here, like in real YouTrack.
+    return delay(CONTRIBUTOR ? [] : fieldsFor(fieldList[1]));
   }
   // One project field: the user bundle of a user field (assignable users of that project).
   const fieldDetail = /^admin\/projects\/([^/]+)\/customFields\/(.+)$/.exec(url);
   if (fieldDetail) {
+    if (CONTRIBUTOR) {
+      throw new Error('Mock host: 403 Forbidden (admin API, regular user)');
+    }
     const logins = PROJECT_USERS[fieldDetail[1]] ?? [];
     return delay({bundle: {aggregatedUsers: USERS.filter(u => logins.includes(u.login))}});
   }
@@ -281,6 +288,24 @@ async function fetchYouTrack(url: string, params: Params = {}): Promise<unknown>
   }
   if (url === 'issues') {
     const query = String(q.query ?? '');
+    // Field definitions read from issues (used when the admin API is not available):
+    // every issue lists all custom fields of its project with the project field settings.
+    if (String(q.fields ?? '').includes('projectCustomField')) {
+      const top = Number(q.$top ?? 100);
+      return delay(ISSUES.filter(i => matches(i, query)).slice(0, top).map(issue => {
+        const project = PROJECTS.find(pr => pr.shortName === issue.project.shortName) ?? PROJECTS[0];
+        return {
+          customFields: fieldsFor(project.id).map(f => ({
+            projectCustomField: {
+              ...f,
+              bundle: f.field.fieldType.valueType === 'user'
+                ? {aggregatedUsers: USERS.filter(u => (PROJECT_USERS[project.id] ?? []).includes(u.login))}
+                : ('bundle' in f ? f.bundle : undefined)
+            }
+          }))
+        };
+      }), 250);
+    }
     const skip = Number(q.$skip ?? 0);
     const top = Number(q.$top ?? 100);
     return delay(ISSUES.filter(i => matches(i, query)).slice(skip, skip + top), 250);
