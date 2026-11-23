@@ -107,6 +107,10 @@ Package for manual upload or the Marketplace: `npm run pack` → `youtrack-issue
 
 Earlier designs are kept as git tags: `v0.8.5-design-a`, `v0.9.0-design-b`, `v0.9.7-design-b2`, `v0.10.x`/`v0.11.0-design-c`.
 
+## Privacy
+
+The app sends no data outside your YouTrack instance and contains no tracking. See [PRIVACY.md](PRIVACY.md).
+
 ## License
 
 Apache License 2.0, see [LICENSE](LICENSE). Copyright and third-party components: [NOTICE](NOTICE).
