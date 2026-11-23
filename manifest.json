@@ -3,7 +3,7 @@
   "name": "excel-export",
   "title": "Issue Export",
   "description": "Filter YouTrack issues and export them to Excel (.xlsx) or CSV.",
-  "version": "0.12.5",
+  "version": "0.12.6",
   "vendor": {
     "name": "Codeo",
     "url": "https://www.codeo.com.tr/"

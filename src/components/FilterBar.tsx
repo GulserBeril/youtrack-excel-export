@@ -445,6 +445,8 @@ function ChipEditor({chip, option, tags, projectUsers, searchUsers, openOnMount,
     <span className="filter-chip">
       <Select
         multiple
+        // Keep the list open while ticking values, like the value list in YouTrack's search bar.
+        tryKeepOpen
         data={data}
         selected={selected}
         filter={{placeholder: t('filter.valueSearch')}}

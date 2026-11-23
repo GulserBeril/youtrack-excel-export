@@ -45,6 +45,26 @@ const USERS = [
 ];
 const TAGS = ['needs review', 'regression', 'customer'];
 
+// Sample issue titles for the local preview and the Marketplace screenshots.
+const SUMMARIES = [
+  'Login fails after password reset',
+  'Add CSV export to the reports page',
+  'Checkout button overlaps the footer on mobile',
+  'Improve search results ranking',
+  'Profile photo upload times out',
+  'Send a reminder email for unpaid invoices',
+  'Dark theme colors in the settings dialog',
+  'Notifications are shown twice',
+  'Support single sign-on with Okta',
+  'Slow loading of the dashboard widgets',
+  'Typo in the onboarding tour',
+  'Allow filtering orders by date range',
+  'Crash when opening an empty project',
+  'Update the privacy policy link',
+  'Keyboard shortcuts for the issue list',
+  'Sync fails on large attachments'
+];
+
 const DAY = 86400000;
 const now = Date.now();
 
@@ -54,7 +74,7 @@ const ISSUES = Array.from({length: 137}, (_, i) => {
   const created = now - (i * 2 + 3) * DAY;
   return {
     idReadable: `${project.shortName}-${100 + i}`,
-    summary: `${['Bug', 'Improvement', 'New field'][i % 3]} on the ${['login', 'payment', 'notification', 'profile', 'search'][i % 5]} screen #${i + 1}`,
+    summary: SUMMARIES[Math.floor(i / 3) % SUMMARIES.length],
     description: 'Sample description.',
     created,
     updated: created + DAY,
